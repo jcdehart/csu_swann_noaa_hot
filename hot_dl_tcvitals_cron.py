@@ -1,20 +1,19 @@
 import pandas as pd
 import numpy as np
 import os
-import argparse
+from datetime import datetime, timezone
 import requests
 
-# grab date from arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("INITDATE", help="initial date (YYYYMMDDHH)", type=str)
-args = parser.parse_args()
+# grab current datetime
+now = datetime.now(timezone.utc)
+initdate = now.strftime("%Y%m%d%H")
 
 # URL to TC Vitals file
 base_url = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.XXXXXXXX/HH/atmos/'
 base_fn = 'gfs.tHHz.syndata.tcvitals.tm00'
 
 # create datetime object and specific date/time strings
-tcvitals_time = pd.to_datetime(args.INITDATE, format='%Y%m%d%H', utc=True)
+tcvitals_time = pd.to_datetime(initdate, format='%Y%m%d%H', utc=True)
 datetime = tcvitals_time.strftime('%Y%m%d')
 hour = tcvitals_time.strftime('%H')
 
@@ -23,7 +22,7 @@ current_url = base_url.replace('XXXXXXXX',datetime).replace('HH',hour)
 current_fn = base_fn.replace('HH',hour)
 
 # check if file exists already or download file
-final_path = './center_data/tcvitals/'+datetime+'/'
+final_path = '/bell-scratch/jcdehart/hot/ingest_dir/center_data/tcvitals/'+datetime+'/'
 os.system('mkdir -p '+final_path)
 
 if os.path.isfile(final_path + current_fn):
@@ -35,6 +34,7 @@ else:
     if (resp.status_code == 200):
 
         print('downloading file: '+current_url+current_fn)
+        print('dir: '+final_path+current_fn)
 
         with open(final_path + current_fn, "wb") as f: # opening a file handler to create new file 
             f.write(resp.content)
@@ -53,7 +53,7 @@ else:
         prev_fn = base_fn.replace('HH',hour_prev)
         
         # set up prev directory
-        prev_path = './center_data/tcvitals/'+datetime_prev+'/'
+        prev_path = '/bell-scratch/jcdehart/hot/ingest_dir/center_data/tcvitals/'+datetime_prev+'/'
         os.system('mkdir -p '+prev_path)
     
         if os.path.isfile(prev_path + prev_fn):
@@ -65,6 +65,7 @@ else:
             # download file if it exists
             if (resp_prev.status_code == 200):
                 print('downloading file: '+prev_url+prev_fn)
+                print('dir: '+prev_path+prev_fn)
 
                 with open(prev_path + prev_fn, "wb") as f: # opening a file handler to create new file 
                     f.write(resp_prev.content)

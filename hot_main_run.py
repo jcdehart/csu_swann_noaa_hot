@@ -93,10 +93,23 @@ elif args.CENTYPE == "tcvitals":
 
     # grab variables from TC Vitals file, character numbers taken from EMC website
     # https://www.emc.ncep.noaa.gov/mmb/data_processing/tcvitals_description.htm
-    storm_lat = float(tc_vital[0][33:36])/10.
-    storm_lon = float(tc_vital[0][38:42])/10.
+    storm_lat_r = float(tc_vital[0][33:36])/10.
+    storm_lat_hemi = tc_vital[0][36]
+    storm_lon_r = float(tc_vital[0][38:42])/10.
+    storm_lon_hemi = tc_vital[0][42]
     storm_dir = float(tc_vital[0][44:47])
     storm_motion = float(tc_vital[0][48:51])/10.
+
+    # convert W, S to -
+    if storm_lat_hemi == 'S':
+        storm_lat = -1*storm_lat_r
+    else:
+        storm_lat = storm_lat_r
+
+    if storm_lon_hemi == 'W':
+        storm_lon = -1*storm_lon_r
+    else:
+        storm_lon = storm_lon_r
 
     # convert storm motion from met degrees to standard math degrees
     storm_dir_rot = 90 + (360 - storm_dir)
