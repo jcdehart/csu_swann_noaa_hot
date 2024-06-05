@@ -48,7 +48,7 @@ def make_cen_file(ref_time, analysis_time, span, lat, lon, u, v, outDir):
     diff = (dt_range - pd.to_datetime(str(dt_range[0].year)+str(dt_range[0].month)+str(dt_range[0].day), format='%Y%m%d', utc=True)).days
     cen_time['new_hour'] = (dt_range.hour + diff.values*24).astype(str) # caculate relative hour
     cen_time['new_hour'] = cen_time['new_hour'].str.zfill(2) # pad zeros
-    cen_time['cen_time_sam'] = cen_time.apply(lambda x:x['cen_time'].replace(x['cen_time'][0:2], x['new_hour']), axis=1)
+    cen_time['cen_time_sam'] = cen_time.apply(lambda x:x['cen_time'].replace(x['cen_time'][0:2], x['new_hour'], 1), axis=1)
 
     # produce lat/lon arrays, based on storm/domain motion
     if (u == 0.) & (v == 0.):

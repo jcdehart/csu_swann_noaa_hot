@@ -53,6 +53,88 @@ def center_fplus(args, samurai_time):
 
 # def center_simplex? chris's code???? *********
 
+def read_hdobs(plane, storm):
+
+    # assumes files have already been moved into samurai_parent/samurai_input dir
+
+    import numpy as np
+    import pandas as pd
+    import glob
+    import os
+
+    # sort files by name, read in files using pandas, add YYYYMMDD from file name to time, concat files together
+    files = sorted(glob.glob('./samurai_parent/samurai_input/*'+plane+'*.hdob'))
+    dfs = [pd.read_csv(f,sep=' ', skip_blank_lines=True, skiprows=[0,1,2,3,24,25,26], header=None, dtype=str) for f in files]
+    good = []
+    for i in range(len(dfs)): 
+        dfs[i][0] = files[i][-17:-9]+dfs[i][0] # add YYYYMMDD to existing time strings
+        
+        # make sure file all correspond to same storm
+        if (os.system('grep '+storm+' '+files[i]) != 256):
+            good.append(i)
+        else:
+            print('storm name not found in HDOBS')
+            # maybe delete files?
+
+    dfs_good = [dfs[i] for i in good]
+    full_ts = pd.concat(dfs_good,ignore_index=True)
+
+    # create new dataframe with actual values we want, starting with datetime
+    hdobs_all = pd.DataFrame(data={'dt':pd.to_datetime(full_ts[0],format='%Y%m%d%H%M%S',utc=True)})
+
+    # correct for crossing of midnight - should be LARGER than last value? probably fix in future....
+    hdobs_all.dt[hdobs_all.dt > hdobs_all.dt[len(hdobs_all.dt)-1]] = hdobs_all.dt[hdobs_all.dt > hdobs_all.dt[len(hdobs_all.dt)-1]] - pd.Timedelta(1,'day')
+
+    if hdobs_all.dt.diff().max() == pd.Timedelta(60,'s'):
+        print('max difference of 60 seconds - conversion good')
+    else:
+        print('issue with hdobs timing order')
+
+    # convert lat/lon to good format
+    hdobs_all['lat'] = full_ts[1].str.strip().str[:-1].astype('float')/100.
+    hdobs_all['lon'] = full_ts[2].str.strip().str[:-1].astype('float')/100.
+    hdobs_all.loc[full_ts[1].str.strip().str[-1:] == 'S','lat'] = hdobs_all.loc[full_ts[1].str.strip().str[-1:] == 'S','lat']*-1
+    hdobs_all.loc[full_ts[2].str.strip().str[-1:] == 'W','lon'] = hdobs_all.loc[full_ts[2].str.strip().str[-1:] == 'W','lon']*-1
+
+    # grab pressure, convert to hPa (assuming all pressure below 1000 for now)
+    hdobs_all['p'] = full_ts[3].astype('float')/10.
+
+    # grab height, keep in m
+    hdobs_all['hgt'] = full_ts[4].astype('float')
+
+    # grab wind speed and dir (dir already in met coords), speed is in knots
+    hdobs_all['wdir'] = full_ts[8].str[0:3].astype('float')
+    hdobs_all['wsp'] = full_ts[8].str[3:].astype('float')
+
+    # get sfmr
+    hdobs_all['sfmr'] = full_ts[10].str.replace('///','999').astype('float')
+
+    # deal with flags
+    hdobs_all['flag_pos'] = full_ts[12].str[0].astype('float')
+    hdobs_all['flag_met'] = full_ts[12].str[1].astype('float')
+
+    # set questionable wind data to nan
+    hdobs_all[hdobs_all == 999] = np.nan
+    hdobs_all.wsp[(hdobs_all.flag_met == 2) | (hdobs_all.flag_met == 4) | (hdobs_all.flag_met == 6) | (hdobs_all.flag_met == 9)] = np.nan
+    hdobs_all.sfmr[(hdobs_all.flag_met == 3) | (hdobs_all.flag_met == 5) | (hdobs_all.flag_met == 6) | (hdobs_all.flag_met == 9)] = np.nan
+
+    # remove any entries above 650 hPa to focus on low-level flight data and bad positional flag
+    hdobs = hdobs_all[(hdobs_all.p > 650.) & (hdobs_all.flag_pos == 0)].reset_index()
+    
+    # calculate D-value
+    z_p_700 = 3012
+    z_p_850 = 1457
+    med_p = hdobs['p'].median() # get median value (hope this weeds out outliers)
+    if 100*np.round(med_p/100) == 700:
+        hdobs['dval'] = hdobs['hgt'] - z_p_700
+    elif (med_p > 800) | (med_p < 900):
+        hdobs['dval'] = hdobs['hgt'] - z_p_850
+    else:
+        print('need additional levels')
+
+
+    return(hdobs)
+
 
 def center_tcvitals(args):
 
@@ -61,7 +143,7 @@ def center_tcvitals(args):
 
     tc_vital = []
     tcvitals_path = args.CENPATH+'/tcvitals/'+args.CENTIME[:8]+'/'
-    tcvitals_fn = args.CENFN 
+    tcvitals_fn = args.CENFN.replace('XX',args.CENTIME[8:10])
     #tcvitals_path = '/bell-scratch/jcdehart/hot/JHT_Michael_Test/TC_Vitals/'
     #tcvitals_fn = 'syndat_tcvitals.2018'i
 
@@ -87,6 +169,7 @@ def center_tcvitals(args):
     
     # grab variables from TC Vitals file, character numbers taken from EMC website
     # https://www.emc.ncep.noaa.gov/mmb/data_processing/tcvitals_description.htm
+    storm_name = tc_vital[0][9:18].strip()
     storm_lat_r = float(tc_vital[0][33:36])/10.
     storm_lat_hemi = tc_vital[0][36]
     storm_lon_r = float(tc_vital[0][38:42])/10.
@@ -109,7 +192,7 @@ def center_tcvitals(args):
 
     u_motion, v_motion, storm_dir_rot = motion_calcs(storm_dir, storm_motion)
     
-    return storm_lat, storm_lon, storm_intens, storm_rmw, storm_dir, storm_motion, center_time, u_motion, v_motion, storm_dir_rot
+    return storm_lat, storm_lon, storm_intens, storm_rmw, storm_dir, storm_motion, center_time, u_motion, v_motion, storm_dir_rot, storm_name
 
 
 def center_adeck(args, samurai_time):
@@ -147,8 +230,9 @@ def center_adeck(args, samurai_time):
     # convert lat/lon to good format
     df2['lat'] = df['LatN/S'].str.strip().str[:-1].astype('float')/10.
     df2['lon'] = df['LonE/W'].str.strip().str[:-1].astype('float')/10.
-    df2['lat'][df['LatN/S'].str.strip().str[-1:] == 'S'] = df2['lat'][df['LatN/S'].str.strip().str[-1:] == 'S']*-1
-    df2['lon'][df['LonE/W'].str.strip().str[-1:] == 'W'] = df2['lon'][df['LonE/W'].str.strip().str[-1:] == 'W']*-1
+    df2.loc[df['LatN/S'].str.strip().str[-1:] == 'S','lat'] = df2.loc[df['LatN/S'].str.strip().str[-1:] == 'S','lat']*-1
+    df2.loc[df['LonE/W'].str.strip().str[-1:] == 'W','lon'] = df2.loc[df['LonE/W'].str.strip().str[-1:] == 'W','lon']*-1
+    #df2['lon'][df['LonE/W'].str.strip().str[-1:] == 'W'] = df2['lon'][df['LonE/W'].str.strip().str[-1:] == 'W']*-1
 
     # add new time and sort and interpolate
     df2.loc[len(df2), 'dt'] = samurai_time

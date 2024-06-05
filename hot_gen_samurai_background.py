@@ -10,9 +10,6 @@ import numpy as np
 import pandas as pd
 #import os
 import argparse
-import matplotlib.pyplot as plt
-
-plt.rcParams.update({'mathtext.default':  'regular' })
 
 #%% functions and dunion sounding
 
@@ -45,49 +42,21 @@ rhoa = np.array([1.1435, 1.1282, 1.0655, 0.99905, 0.85538, 0.75588, 0.65106, 0.5
 
 # grab info from tc vitals file
 parser = argparse.ArgumentParser()
-parser.add_argument("VITALSPATH", help="TC Vitals directory", type=str)
-parser.add_argument("STORM", help="storm name", type=str)
-parser.add_argument("DATETIME", help="tcvitals datetime (YYYYMMDDHHMM)", type=str)
-parser.add_argument("ANALYSISTIME", help="samurai analysis datetime (YYYYMMDDHHMM)", type=str)
+parser.add_argument("LAT", help="storm latitude", type=str)
+parser.add_argument("LON", help="storm longitude", type=str)
+parser.add_argument("VMAX", help="storm vmax (m/s)", type=str)
+parser.add_argument("RMW", help="storm rmw (km)", type=str)
+parser.add_argument("R34", help="average storm r34 (km)", type=str)
+parser.add_argument("ANALYSISTIME", help="samurai analysis time (YYYYMMDDHHSS)", type=str)
 args = parser.parse_args()
 
-tc_vital = []
-tcvitals_path = args.VITALSPATH + args.DATETIME[:8] + '/'
-tcvitals_fn = 'gfs.tXXz.syndata.tcvitals.tm00'.replace('XX',args.DATETIME[8:10])
-
-# grab all lines that contain storm
-file = open(tcvitals_path+tcvitals_fn)
-searchwds = [args.STORM, args.DATETIME[:8], args.DATETIME[8:]]
-for line in file: 
-    if all(word in line for word in searchwds):
-        tc_vital.append(line)
-        
 #%% extract info 
 
-# grab variables from TC Vitals file, character numbers taken from EMC website
-# https://www.emc.ncep.noaa.gov/mmb/data_processing/tcvitals_description.htm
-tcvitals_lat_r = float(tc_vital[0][33:36])/10.
-tcvitals_lat_hemi = tc_vital[0][36]
-tcvitals_lon_r = float(tc_vital[0][38:42])/10.
-tcvitals_lon_hemi = tc_vital[0][42]
-storm_intens = float(tc_vital[0][67:69]) # m/s
-storm_rmw = 1000*float(tc_vital[0][70:73]) # convert to m
-storm_r34 = 1000*np.array([float(tc_vital[0][74:78]), float(tc_vital[0][79:83]), float(tc_vital[0][84:88]), float(tc_vital[0][89:93])]) # convert to m
-
-# convert W, S to -
-if tcvitals_lat_hemi == 'S':
-    tcvitals_lat = -1*tcvitals_lat_r
-else:
-    tcvitals_lat = tcvitals_lat_r
-    
-if tcvitals_lon_hemi == 'W':
-    tcvitals_lon = -1*tcvitals_lon_r
-else:
-    tcvitals_lon = tcvitals_lon_r
-
-# turn -999 to np.nan
-storm_r34[storm_r34 == -999000] = np.nan
-storm_r34_avg = np.nanmean(storm_r34)
+storm_lat = float(args.LAT)
+storm_lon = float(args.LON)
+storm_intens = float(args.VMAX) # m/s
+storm_rmw = 1000*float(args.RMW) # convert to m
+storm_r34 = 1000*float(args.R34) # convert to m
 
 #%% create array
 
@@ -104,7 +73,7 @@ surface_wind[:] = np.nan
 surface_wind[surface_r*1000. <= storm_rmw] = (storm_intens/storm_rmw)*surface_r[surface_r*1000. <= storm_rmw]*1000.
 
 # calc angMOM at rmw, r34, and the slope between those points (dandan, jon's papers)
-f = 2*(7.2921e-5)*np.sin(np.radians(tcvitals_lat))
+f = 2*(7.2921e-5)*np.sin(np.radians(storm_lat))
 m_max = angMOM(storm_rmw, storm_intens, f)
 m_34 = angMOM(storm_r34_avg, 17.4911, f) # converted 34 knots to m/s
 m_sl = (-1 + m_34/m_max)/(-1 + storm_r34_avg/storm_rmw)
@@ -159,7 +128,7 @@ rhoa_3d = np.tile(rhoa_levs[:, None, None], (1, horiz_len, horiz_len))
 vitals_time = pd.to_datetime(args.ANALYSISTIME, format='%Y%m%d%H%M', utc=True).strftime('%Y-%m-%d_%H:%M:%S')
 
 # 3-d arrays of lat, lon
-surface_lon, surface_lat = latlon(tcvitals_lon, tcvitals_lat, x, y)
+surface_lon, surface_lat = latlon(storm_lon, storm_lat, x, y)
 lon_3d = np.tile(surface_lon, (11,1,1))
 lat_3d = np.tile(surface_lat, (11,1,1))
 
@@ -181,99 +150,3 @@ background_file = pd.DataFrame(d)
 background_file.to_csv('samurai_Background.in', header=None, index=None, sep=' ', float_format='%.4f')
 # , fmt=['%s','%f','%f','%.1f','%f','%f','%.2f','%.2f','%.2f','%.3f',]
 
-#%% plots
-
-cmax = np.ceil(np.nanmax(wind_3d)/5)*5 + 2.5
-
-fig, axs = plt.subplots(1,2, sharex=True, sharey=True, figsize=(8,4), dpi=200)
-c1 = axs[0].contourf(x, y, surface_wind, levels=np.arange(0,cmax,2.5), cmap='Spectral_r')
-c2 = axs[1].contourf(x, y, m/m_max, cmap='YlOrBr')
-cb1 = plt.colorbar(c1,ax=axs[0])
-cb2 = plt.colorbar(c2,ax=axs[1])
-cb1.ax.set_title(r'm s$^{-1}$')
-cb2.ax.set_title(r'kg m$^2$ s$^{-1}$')
-axs[0].set_xlabel('distance (km)')
-axs[0].set_ylabel('distance (km)')
-axs[1].set_xlabel('distance (km)')
-axs[0].set_title('surface wind speed')
-axs[1].set_title('surface ang momentum')
-
-fig, axs = plt.subplots(1,2, sharex=True, figsize=(8,4), dpi=200)
-axs[0].plot(horiz_dim,surface_wind[176,:])
-axs[1].plot(horiz_dim,m[176,:]/m_max)
-axs[0].set_xlabel('distance (km)')
-axs[0].set_ylabel('wind speed (m/s)')
-axs[1].set_xlabel('distance (km)')
-axs[1].set_ylabel('angular momentum')
-
-fig, axs = plt.subplots(2,2, sharex=True, sharey=True, figsize=(6,6), dpi=200)
-c1 = axs[0][0].contourf(x, y, surface_wind, levels=np.arange(0,cmax,2.5), cmap='Spectral_r')
-c2 = axs[0][1].contourf(x, y, wind_3d[1,:,:], levels=np.arange(0,cmax,2.5), cmap='Spectral_r')
-c3 = axs[1][0].contourf(x, y, wind_3d[6,:,:], levels=np.arange(0,cmax,2.5), cmap='Spectral_r')
-c4 = axs[1][1].contourf(x, y, wind_3d[10,:,:], levels=np.arange(0,cmax,2.5), cmap='Spectral_r')
-axs[0][0].plot(x[204,204],y[204,204],'ko')
-axs[0][0].plot(x[224,224],y[224,224],'ko')
-cb1 = plt.colorbar(c1,ax=axs[0][0])
-cb2 = plt.colorbar(c2,ax=axs[0][1])
-cb3 = plt.colorbar(c1,ax=axs[1][0])
-cb4 = plt.colorbar(c2,ax=axs[1][1])
-cb1.ax.set_title(r'm s$^{-1}$')
-cb2.ax.set_title(r'm s$^{-1}$')
-cb3.ax.set_title(r'm s$^{-1}$')
-cb4.ax.set_title(r'm s$^{-1}$')
-axs[1][0].set_xlabel('distance (km)')
-axs[0][0].set_ylabel('distance (km)')
-axs[1][0].set_ylabel('distance (km)')
-axs[1][1].set_xlabel('distance (km)')
-axs[0][0].set_title('surface')
-axs[0][1].set_title('0.5 km')
-axs[1][0].set_title('3 km')
-axs[1][1].set_title('5 km')
-
-fig, axs = plt.subplots(2,2, sharex=True, sharey=True, figsize=(6,6), dpi=200)
-c1 = axs[0][0].contourf(surface_lon, surface_lat, surface_wind, levels=np.arange(0,cmax,2.5), cmap='Spectral_r')
-c2 = axs[0][1].contourf(surface_lon, surface_lat, wind_3d[1,:,:], levels=np.arange(0,cmax,2.5), cmap='Spectral_r')
-c3 = axs[1][0].contourf(surface_lon, surface_lat, wind_3d[6,:,:], levels=np.arange(0,cmax,2.5), cmap='Spectral_r')
-c4 = axs[1][1].contourf(surface_lon, surface_lat, wind_3d[10,:,:], levels=np.arange(0,cmax,2.5), cmap='Spectral_r')
-cb1 = plt.colorbar(c1,ax=axs[0][0])
-cb2 = plt.colorbar(c2,ax=axs[0][1])
-cb3 = plt.colorbar(c1,ax=axs[1][0])
-cb4 = plt.colorbar(c2,ax=axs[1][1])
-cb1.ax.set_title(r'm s$^{-1}$')
-cb2.ax.set_title(r'm s$^{-1}$')
-cb3.ax.set_title(r'm s$^{-1}$')
-cb4.ax.set_title(r'm s$^{-1}$')
-axs[0][0].set_title('surface')
-axs[0][1].set_title('0.5 km')
-axs[1][0].set_title('3 km')
-axs[1][1].set_title('5 km')
-
-fig, axs = plt.subplots(2,2, sharex=True, sharey=True, figsize=(6,6), dpi=200)
-c1 = axs[0][0].contourf(x, y, u_3d[0,:,:], levels=np.arange(-1*cmax + 2.5,cmax,2.5), cmap='Spectral_r')
-c2 = axs[0][1].contourf(x, y, v_3d[0,:,:], levels=np.arange(-1*cmax + 2.5,cmax,2.5), cmap='Spectral_r')
-c3 = axs[1][0].contourf(x, y, u_3d[6,:,:], levels=np.arange(-1*cmax + 2.5,cmax,2.5), cmap='Spectral_r')
-c4 = axs[1][1].contourf(x, y, v_3d[6,:,:], levels=np.arange(-1*cmax + 2.5,cmax,2.5), cmap='Spectral_r')
-cb1 = plt.colorbar(c1,ax=axs[0][0])
-cb2 = plt.colorbar(c2,ax=axs[0][1])
-cb3 = plt.colorbar(c1,ax=axs[1][0])
-cb4 = plt.colorbar(c2,ax=axs[1][1])
-cb1.ax.set_title(r'm s$^{-1}$')
-cb2.ax.set_title(r'm s$^{-1}$')
-cb3.ax.set_title(r'm s$^{-1}$')
-cb4.ax.set_title(r'm s$^{-1}$')
-axs[1][0].set_xlabel('distance (km)')
-axs[0][0].set_ylabel('distance (km)')
-axs[1][0].set_ylabel('distance (km)')
-axs[1][1].set_xlabel('distance (km)')
-axs[0][0].set_title('u surface')
-axs[0][1].set_title('v surface')
-axs[1][0].set_title('u 3 km')
-axs[1][1].set_title('v 3 km')
-
-fig, axs = plt.subplots(1,2, sharex=True, figsize=(8,4), dpi=200)
-axs[0].plot(wind_3d[:, 204, 204], alt_3d[:, 204, 204]/1000.)
-axs[1].plot(wind_3d[:, 224, 224], alt_3d[:, 224, 224]/1000.)
-axs[0].set_xlabel('wind speed (m/s)')
-axs[0].set_ylabel('altitude (km)')
-axs[1].set_xlabel('wind speed (m/s)')
-axs[1].set_ylabel('altitude (km)')
