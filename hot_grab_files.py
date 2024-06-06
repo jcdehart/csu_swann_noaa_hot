@@ -2,6 +2,7 @@ import glob
 import pandas as pd
 import numpy as np
 import os
+import subprocess
 
 
 def create_dataframe(inDir, start_time, end_time):
@@ -14,24 +15,52 @@ def create_dataframe(inDir, start_time, end_time):
         print("issue with inDir")
 
     files = sorted(glob.glob(inDir+'/'+str(start_time.year)+'/*'+ext, recursive=True))
-    df = pd.DataFrame(files,columns=['path'])
+    df_orig = pd.DataFrame(files,columns=['path'])
  
     if inDir.find('hrd_radials') != -1:
         start = len(inDir) + 6
-    else:
-        start = df['path'][0].find('.'+str(start_time.year)) + 1
+    elif inDir.find('hdobs') != -1:
+        start = df_orig['path'][0].find('.'+str(start_time.year)) + 1
+        
+    df_orig['datetime'] = pd.to_datetime(df_orig['path'].str[start:start+12], format='%Y%m%d%H%M', utc=True)
     
-    df['datetime'] = pd.to_datetime(df['path'].str[start:start+12], format='%Y%m%d%H%M', utc=True)
-
-    return df
+    return df_orig
 
 
-def shrink_df(df, start_time, end_time):
+def shrink_df(df, start_time, end_time, storm_name, af):
 
     mask = (df['datetime'] >= (start_time - pd.Timedelta(10,unit='m'))) & (df['datetime'] <= (end_time + pd.Timedelta(10,unit='m')))
-    df_sm = df.loc[mask]
+    df_sm = df.loc[mask].reset_index(drop=True)
+        
+    if df_sm.path.str.contains('hdobs').iloc[0]:
+        # basically get identifying info about each hdob file
+        hdob_header = []
+    
+        print(len(df_sm.path))
+        # loop through path and grab header
+        for i in df_sm.path:
+            test = subprocess.Popen('grep HDOB '+i,shell=True, stdout=subprocess.PIPE,close_fds=False).stdout #no clue what this means haha
+            hdob_header.append(test.read().decode().rstrip().split()) # add to list and separate by whitespace
+            print(i)
 
-    return df_sm
+        # only retain paths that match the storm name passed to function
+        df_sm = df_sm.join(pd.DataFrame(hdob_header,columns=['plane','mission','storm','hdob','num','date'],dtype=str))
+        df_storm = df_sm[df_sm.storm == storm_name]
+    
+        AF_mask = df_storm.plane.str.contains('AF')
+    
+        if af:
+            df_plane = df_storm.loc[AF_mask]
+        else:
+            df_plane = df_storm.loc[~AF_mask]
+
+    else:
+        df_plane = df_sm
+        print('not hdobs, returning dataframe')
+
+
+
+    return df_plane
 
 
 def copy_files(df, outdir):
