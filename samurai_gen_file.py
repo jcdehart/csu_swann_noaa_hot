@@ -3,7 +3,7 @@ import numpy as np
 import argparse
 
 
-def make_cen_file(ref_time, analysis_time, span, lat, lon, u, v, outDir):
+def make_cen_file(ref_time, sam_start, sam_end, lat, lon, u, v, outDir):
 
     """
     Creates a center file for samurai from a tcvitals file, rewriting Michael's perl script into python
@@ -12,10 +12,10 @@ def make_cen_file(ref_time, analysis_time, span, lat, lon, u, v, outDir):
     ----------
     ref_time : pandas datetime value
         Datetime object defining the time when the domain reaches the reference lat/lon 
-    analysis_time : pandas datetime value
-        Datetime object defining the samurai analysis time, here middle of range
-    span : int
-        Time in minutes defining the duration before and after samurai analysis time (symmetric)
+    sam_start : pandas datetime value
+        Datetime object defining the samurai start time
+    sam_end : pandas datetime value
+        Datetime object defining the samurai end time
     lat : float
         Reference latitude
     lon : float
@@ -28,10 +28,12 @@ def make_cen_file(ref_time, analysis_time, span, lat, lon, u, v, outDir):
         Path where center file will be written
     """
 
-    # init_time = reference time corresponding to lat/lon, start_time/end_time = analysis_time +/- span
+    # init_time = reference time corresponding to lat/lon, start_time/end_time specified by user
     init_time = ref_time
-    start_time = analysis_time - pd.to_timedelta(span, unit='m')
-    end_time = analysis_time + pd.to_timedelta(span, unit='m')
+    start_time = sam_start
+    end_time = sam_end
+    #start_time = analysis_time - pd.to_timedelta(span, unit='m')
+    #end_time = analysis_time + pd.to_timedelta(span, unit='m')
 
     # set up date range array, beginning depends on when earliest time is
     if (init_time < start_time):
@@ -45,6 +47,7 @@ def make_cen_file(ref_time, analysis_time, span, lat, lon, u, v, outDir):
     cen_time['dt'] = dt_range
 
     # do some manipulating to place datetime in format samurai expects (hours after midnight increase to 24, 25, 26...)
+    # **** CHANGE TO FIXED VERSION ****
     diff = (dt_range - pd.to_datetime(str(dt_range[0].year)+str(dt_range[0].month)+str(dt_range[0].day), format='%Y%m%d', utc=True)).days
     cen_time['new_hour'] = (dt_range.hour + diff.values*24).astype(str) # caculate relative hour
     cen_time['new_hour'] = cen_time['new_hour'].str.zfill(2) # pad zeros

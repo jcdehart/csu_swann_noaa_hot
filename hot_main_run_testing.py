@@ -47,13 +47,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument("STORM", help="storm name (all caps)", type=str)
 parser.add_argument("CENTIME", help="cen datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("ANALYSISTIME", help="samurai analysis datetime (YYYYMMDDHHMM)", type=str)
+parser.add_argument("STARTTIME", help="samurai start datetime (YYYYMMDDHHMM)", type=str)
+parser.add_argument("ENDTIME", help="samurai end datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("--CENFN", default="gfs.tXXz.syndata.tcvitals.tm00", help="TC Vitals filename", type=str)
 parser.add_argument("--CENPATH", default="./ingest_dir/center_data", help="TC Vitals directory", type=str)
 parser.add_argument("--CENTYPE", default="tcvitals", help="center type (tcvitals or fplus)", type=str)
 args = parser.parse_args()
 
 # ***** change into an argument, or change to start time + duration, model will be settled in future, deal with af only later
-dur = 45
+#dur = 45
 cyl = False
 af = False
 #alt_plane = 1.5
@@ -68,8 +70,10 @@ else:
     mode = ''
 
 samurai_time = pd.to_datetime(args.ANALYSISTIME,format='%Y%m%d%H%M',utc=True)
-leg_start = samurai_time - pd.Timedelta(dur, 'min')
-leg_end = samurai_time + pd.Timedelta(dur, 'min')
+leg_start = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True)
+leg_end = pd.to_datetime(args.ENDTIME,format='%Y%m%d%H%M',utc=True)
+#leg_start = samurai_time - pd.Timedelta(dur, 'min')
+#leg_end = samurai_time + pd.Timedelta(dur, 'min')
 print('\n')
 print('leg start time: '+leg_start.strftime('%Y%m%d%H%M'))
 print('leg end time: '+leg_end.strftime('%Y%m%d%H%M'))
@@ -136,23 +140,24 @@ elif ml_ver == 'DERR':
 if af == False:
     hrd = hot_grab_files.create_dataframe(data_dir+'hrd_radials',leg_start,leg_end)
     hdobs = hot_grab_files.create_dataframe(data_dir+'hdobs',leg_start,leg_end)
-    hrd_sm = hot_grab_files.shrink_df(hrd, leg_start, leg_end)
-    hdobs_sm = hot_grab_files.shrink_df(hdobs, leg_start, leg_end)
+    hrd_sm = hot_grab_files.shrink_df(hrd, leg_start, leg_end, storm_name_2, af)
+    hdobs_sm = hot_grab_files.shrink_df(hdobs, leg_start, leg_end, storm_name_2, af)
     hot_grab_files.copy_files(hrd_sm,sam_ingest_dir)
     hot_grab_files.copy_files(hdobs_sm,sam_ingest_dir)
     os.system('gunzip '+sam_ingest_dir+'/*.gz')
 else:
     hdobs = hot_grab_files.create_dataframe(data_dir+'hdobs',leg_start,leg_end)
-    hdobs_sm = hot_grab_files.shrink_df(hdobs, leg_start, leg_end)
+    hdobs_sm = hot_grab_files.shrink_df(hdobs, leg_start, leg_end, storm_name_2, af)
     hot_grab_files.copy_files(hdobs_sm,sam_ingest_dir)
-    os.system('rm '+sam_ingest_dir+'*KWBC*') # *** check??????
+    #os.system('rm '+sam_ingest_dir+'*KWBC*') # *** check??????
 
 # rename hdob .list files to .hdob for SAMURAI ingestion
 os.system('for i in '+sam_ingest_dir+'/*.txt; do mv "$i" "${i%.txt}.hdob"; done')
 
 # create center file
 # ***** update time to something more flexible, or include in inputs
-ref_latlon_cart = make_cen_file(samurai_time, samurai_time, dur, storm_lat, storm_lon, u_motion, v_motion, './samurai_parent/samurai_input/')
+ref_latlon_cart = make_cen_file(samurai_time, leg_start, leg_end, storm_lat, storm_lon, u_motion, v_motion, './samurai_parent/samurai_input/')
+#ref_latlon_cart = make_cen_file(samurai_time, samurai_time, dur, storm_lat, storm_lon, u_motion, v_motion, './samurai_parent/samurai_input/')
 
 # generate samurai params file from master
 if af == True:
@@ -236,7 +241,8 @@ print(dt_wc[0])
 if cyl == True:
 
     # changing ref time to time associated with storm center
-    ref_latlon = make_cen_file(dt_wc[0], samurai_time, dur, lat_wc[0], lon_wc[0], u_motion, v_motion, './samurai_parent/samurai_input/')
+    ref_latlon = make_cen_file(dt_wc[0], leg_start, leg_end, lat_wc[0], lon_wc[0], u_motion, v_motion, './samurai_parent/samurai_input/')
+    #ref_latlon = make_cen_file(dt_wc[0], samurai_time, dur, lat_wc[0], lon_wc[0], u_motion, v_motion, './samurai_parent/samurai_input/')
     #ref_latlon = make_cen_file(samurai_time, samurai_time, dur, sam_lat, sam_lon, u_motion, v_motion, './samurai_parent/samurai_input/')
 
     # generate samurai params file from master
