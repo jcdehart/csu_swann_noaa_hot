@@ -13,7 +13,7 @@ base_url = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.XXXXXXXX
 base_fn = 'gfs.tHHz.syndata.tcvitals.tm00'
 
 # create datetime object and specific date/time strings
-tcvitals_time = pd.to_datetime(initdate, format='%Y%m%d%H', utc=True)
+tcvitals_time = pd.to_datetime(initdate, format='%Y%m%d%H', utc=True).round('6h')
 datetime = tcvitals_time.strftime('%Y%m%d')
 hour = tcvitals_time.strftime('%H')
 
@@ -40,7 +40,7 @@ else:
             f.write(resp.content)
 
     # if a 404 code is returned, grab the last time stamp
-    elif (resp.status_code == 404):
+    elif ((resp.status_code == 404) | (resp.status_code == 403)):
     #if (os.stat('./' + current_fn).st_size == 0):
         
         print('404 code returned, trying 6 hours before')
@@ -72,8 +72,8 @@ else:
 
             else:
                 print(resp_prev.status_code)
-                print('some other error occurring - investigate')
+                print('some other error occurring - investigate (prev time)')
 
     else:
         print(resp.status_code)
-        print('some other error occurring - investigate')
+        print('some other error occurring - investigate (orig time)')

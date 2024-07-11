@@ -103,8 +103,8 @@ def read_hdobs(plane, storm):
     hdobs_all['hgt'] = full_ts[4].astype('float')
 
     # grab wind speed and dir (dir already in met coords), speed is in knots
-    hdobs_all['wdir'] = full_ts[8].str[0:3].astype('float')
-    hdobs_all['wsp'] = full_ts[8].str[3:].astype('float')
+    hdobs_all['wdir'] = full_ts[8].str[0:3].replace('///','999').astype('float')
+    hdobs_all['wsp'] = full_ts[8].str[3:].replace('///','999').astype('float')
 
     # get sfmr
     hdobs_all['sfmr'] = full_ts[10].str.replace('///','999').astype('float')
@@ -114,14 +114,16 @@ def read_hdobs(plane, storm):
     hdobs_all['flag_met'] = full_ts[12].str[1].astype('float')
 
     # set questionable wind data to nan
-    hdobs_all[hdobs_all == 999] = np.nan
-    hdobs_all.wsp[(hdobs_all.flag_met == 2) | (hdobs_all.flag_met == 4) | (hdobs_all.flag_met == 6) | (hdobs_all.flag_met == 9)] = np.nan
-    hdobs_all.sfmr[(hdobs_all.flag_met == 3) | (hdobs_all.flag_met == 5) | (hdobs_all.flag_met == 6) | (hdobs_all.flag_met == 9)] = np.nan
+    hdobs_final = hdobs_all.copy(deep=True)
+    hdobs_final[hdobs_all == 999] = np.nan
+    hdobs_final.wsp.loc[(hdobs_all.flag_met == 2) | (hdobs_all.flag_met == 4) | (hdobs_all.flag_met == 6) | (hdobs_all.flag_met == 9)] = np.nan
+    hdobs_final.sfmr.loc[(hdobs_all.flag_met == 3) | (hdobs_all.flag_met == 5) | (hdobs_all.flag_met == 6) | (hdobs_all.flag_met == 9)] = np.nan
 
     # remove any entries above 650 hPa to focus on low-level flight data and bad positional flag
-    hdobs = hdobs_all[(hdobs_all.p > 650.) & (hdobs_all.flag_pos == 0)].reset_index()
+    hdobs = hdobs_final[(hdobs_all.p > 650.) & (hdobs_all.flag_pos == 0)].reset_index()
     
     # calculate D-value
+    # **** may need to use adaptive value here if legs contain two levels... *******
     z_p_700 = 3012
     z_p_850 = 1457
     med_p = hdobs['p'].median() # get median value (hope this weeds out outliers)
@@ -140,10 +142,12 @@ def center_tcvitals(args):
 
     import numpy as np
     import pandas as pd
+    import os
 
+    centime_firstguess = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True).floor('6H')
     tc_vital = []
-    tcvitals_path = args.CENPATH+'/tcvitals/'+args.CENTIME[:8]+'/'
-    tcvitals_fn = args.CENFN.replace('XX',args.CENTIME[8:10])
+    tcvitals_path = args.CENPATH+'/tcvitals/'+centime_firstguess.strftime('%Y%m%d')+'/'
+    tcvitals_fn = args.CENFN.replace('XX',centime_firstguess.strftime('%H'))
     #tcvitals_path = '/bell-scratch/jcdehart/hot/JHT_Michael_Test/TC_Vitals/'
     #tcvitals_fn = 'syndat_tcvitals.2018'i
 
@@ -155,15 +159,47 @@ def center_tcvitals(args):
     storm_id = args.STORM[2:4]+basin
     print(storm_id)
 
+    # check if real time files exist, otherwise go to archive
+    if os.path.isfile(tcvitals_path+tcvitals_fn):
+        file = open(tcvitals_path+tcvitals_fn)
+        centime = centime_firstguess
+        print('tcvitals time: '+centime_firstguess.strftime('%Y%m%d%H%M'))
+    else:
+        print('orig time file does not exist, trying 6 hours before')
+
+        # reset path and names and try for time 6 hours earlier
+        centime_secondguess = centime_firstguess - pd.Timedelta(hours=6)
+        tcvitals_path_early = args.CENPATH+'/tcvitals/'+centime_secondguess.strftime('%Y%m%d')+'/'
+        tcvitals_fn_early = args.CENFN.replace('XX',centime_secondguess.strftime('%H'))
+        
+        if os.path.isfile(tcvitals_path_early+tcvitals_fn_early):
+            file = open(tcvitals_path_early+tcvitals_fn_early)
+            centime = centime_secondguess
+            print('tcvitals time: '+centime_secondguess.strftime('%Y%m%d%H%M'))
+
+        else:
+            # assuming that data is in the archive
+            print('neither time exists - moving to 2023 archive')
+            tcvitals_path_archive = args.CENPATH+'/tcvitals/archive/'
+            tcvitals_fn_archive = 'syndat_tcvitals.'+centime_firstguess.strftime('%Y')
+            file = open(tcvitals_path_archive+tcvitals_fn_archive)
+
+            # set 4 hours as required threshold for using first guess
+            if (pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True) - centime_firstguess) / pd.Timedelta(1, 'h') > 4:
+                centime = centime_firstguess
+            else:
+                centime = centime_secondguess
+            
+
     # grab all lines that contain storm
-    file = open(tcvitals_path+tcvitals_fn)
-    searchwds = [storm_id, args.CENTIME[0:8], args.CENTIME[8:12]]
+    searchwds = [storm_id, centime.strftime('%Y%m%d'), centime.strftime('%H%M')]
+    #searchwds = [storm_id, args.CENTIME[0:8], args.CENTIME[8:12]]
     #searchwds = ['MICHAEL','20181010','1200']
     for line in file: 
         if all(word in line for word in searchwds):
             tc_vital.append(line)
 
-    print(tc_vital)
+    #print(tc_vital)
 
     center_time = pd.to_datetime(searchwds[1]+searchwds[2], format='%Y%m%d%H%M', utc=True)
     
@@ -201,16 +237,20 @@ def center_adeck(args, samurai_time):
     import numpy as np
     from os import system
 
+    centime = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True).floor('6H')
     adeck = []
-    adeck_path = args.CENPATH+'/adeck/'+args.CENTIME[0:4]+'/'
-    adeck_fn = 'a'+args.STORM.lower()+args.CENTIME[0:4]+'.dat'
+    adeck_path = args.CENPATH+'/adeck/'+centime.strftime('%Y')+'/'
+    adeck_fn = 'a'+args.STORM.lower()+centime.strftime('%Y')+'.dat'
+    #adeck_path = args.CENPATH+'/adeck/'+args.CENTIME[0:4]+'/'
+    #adeck_fn = 'a'+args.STORM.lower()+args.CENTIME[0:4]+'.dat'
 
     system('gunzip '+adeck_path+adeck_fn+'.gz')
     print('unzipping  '+adeck_path+adeck_fn+'.gz')
 
     # grab all lines that contain storm
     file = open(adeck_path+adeck_fn)
-    searchwds = ['OFCL', args.CENTIME[0:10], '34,']
+    searchwds = ['OFCL', centime.strftime('%Y%m%d%H'), '34,']
+    #searchwds = ['OFCL', args.CENTIME[0:10], '34,']
     for line in file: 
         if all(word in line for word in searchwds):
             adeck.append(line)

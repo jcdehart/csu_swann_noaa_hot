@@ -41,12 +41,13 @@ def shrink_df(df, start_time, end_time, storm_name, af):
         for i in df_sm.path:
             test = subprocess.Popen('grep HDOB '+i,shell=True, stdout=subprocess.PIPE,close_fds=False).stdout #no clue what this means haha
             hdob_header.append(test.read().decode().rstrip().split()) # add to list and separate by whitespace
-            print(i)
+            #print(i)
 
         # only retain paths that match the storm name passed to function
         df_sm = df_sm.join(pd.DataFrame(hdob_header,columns=['plane','mission','storm','hdob','num','date'],dtype=str))
         df_storm = df_sm[df_sm.storm == storm_name]
-    
+        
+        # depending on plane, restrict file list to relevant plane
         AF_mask = df_storm.plane.str.contains('AF')
     
         if af:

@@ -171,8 +171,8 @@ def peaks_wc(peaks_refined, approaches, lat_f, lon_f, wdir_rel, dt_f):
         difflon = lonsub - rellon
         difflat = latsub - rellat
         errorl = np.sqrt(difflon * difflon + difflat * difflat)
-        print(dtsub)
-        print(dt_f)
+        #print(dtsub)
+        #print(dt_f)
         imin = np.argmin(errorl)
         #print(imin)
         #print(errorl)
@@ -330,6 +330,7 @@ def run_wc_code(file_in):
     print('Refining centers based Willoughby and Chelmow')
     dt_wc, lon_wc, lat_wc = peaks_wc(peaks_refined, approaches, lat_f, lon_f, wdir_rel, dt_f)
 
+    # might be an error here? may need an index-based approach ***********
     print('W-C center lon: '+str(lon_wc))
     print('W-C center lat: '+str(lat_wc))
     print(dt_wc)
