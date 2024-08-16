@@ -26,8 +26,6 @@ import center_funcs
 from matplotlib.ticker import AutoMinorLocator
 import matplotlib.colors as colors
 import matplotlib.dates as mdates
-from matplotlib.lines import Line2D
-
 
 plt.rcParams.update({'mathtext.default':  'regular' })
 
@@ -50,19 +48,14 @@ def xy(lat, lon, lat0, lon0):
     lon_plane = np.radians(lon)
     lat_cen = np.radians(lat0)
     lon_cen = np.radians(lon0)
-    #dlon = lon_cen - lon_plane
-    #dlat = lat_cen - lat_plane
     dlon = lon_plane - lon_cen
     dlat = lat_plane - lat_cen
-    #a = np.sin(dlat / 2)**2 + np.cos(lat_plane) * np.cos(lat_cen) * np.sin(dlon / 2)**2
     a = np.sin(dlat / 2)**2 + np.cos(lat_cen) * np.cos(lat_plane) * np.sin(dlon / 2)**2
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
     distance = R * c
-    #bearing = np.arctan2(np.sin(lon_cen-lon_plane)*np.cos(lat_cen), np.cos(lat_plane)*np.sin(lat_cen)-np.sin(lat_plane)*np.cos(lat_cen)*np.cos(lon_cen-lon_plane))
     bearing = np.arctan2(np.sin(lon_plane-lon_cen)*np.cos(lat_plane), np.cos(lat_cen)*np.sin(lat_plane)-np.sin(lat_cen)*np.cos(lat_plane)*np.cos(lon_plane-lon_cen))
-    #bearing is in north-facing coords...
-    x = distance*np.cos(-1*(bearing-(np.pi/2)))
-    y = distance*np.sin(-1*(bearing-(np.pi/2)))
+    x = distance*np.cos(bearing)
+    y = distance*np.sin(bearing)
     return(x,y)
 
 #%% main code: step 1 - make center file from tcvitals of flight+ file (hot_calc_centers)
@@ -518,9 +511,6 @@ mag_3km[(rd/sam_rmw < 0.3)] = np.nan
 print('/n')
 print('predicted max sfc wind: '+str(np.nanmax(sfc_wind_pred)))
 
-# get RMW of max point
-swann_rmw = np.nanmin(rd[sfc_wind_pred == np.nanmax(sfc_wind_pred)]) # think this should just be a point location... *******
-
 # censor out boundaries with spectral ringing
 mag_3km[:4,:] = np.nan
 mag_3km[-4:,:] = np.nan
@@ -538,8 +528,7 @@ v_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.sin(th_nc) + sfc_wind_pred*n
 #%% main code: step 4 - save output data as NetCDF (adapted from MetPy documentation)
 
 f = open(sam_dir+args.STORM+'_'+args.ANALYSISTIME+'_data.txt','w')
-lines = ['SWANN RMW: '+str(swann_rmw)+'\n', 'samurai FL intens: '+str(np.nanmax(wspd_earth))+'\n', 'SWANN Vmax: '+str(np.nanmax(sfc_wind_pred))]
-#lines = ['samurai FL RMW: '+str(sam_rmw)+'\n', 'samurai FL intens: '+str(np.nanmax(wspd_earth))+'\n', 'predicted max sfc wind: '+str(np.nanmax(sfc_wind_pred))]
+lines = ['samurai FL RMW: '+str(sam_rmw)+'\n', 'samurai FL intens: '+str(np.nanmax(wspd_earth))+'\n', 'predicted max sfc wind: '+str(np.nanmax(sfc_wind_pred))]
 f.writelines(lines)
 f.close()
 
@@ -551,15 +540,14 @@ elif alt_plane == 3.0:
 textstr = '\n'.join((
     storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_sm.mission.unique()[0],
     leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M'),
-    'Inputs: HRD TDR, HDOBS',
     '\n',
-    r'SAMURAI FL V$_{max}$: %.1f (kt)' % (np.nanmax(wspd_earth*1.94), ),
-    r'HDOB FL V$_{max}$: %.1f (kt)' % (np.nanmax(hdobs.wsp), ),
+    'SAMURAI FL RMW: %.1f' % (sam_rmw, ),
+    r'SAMURAI FL V$_{max}$: %.1f' % (np.nanmax(wspd_earth*1.94), ),
+    r'HDOB FL V$_{max}$: %.1f' % (np.nanmax(hdobs.wsp), ),
     '\n',
-    'SWANN RMW: %.1f (nm)' % (swann_rmw/1.852, ),
-    r'$\bf{SWANN\ V_{max}:\ %.1f\ (kt)}$' % (np.nanmax(sfc_wind_pred*1.94), ),
-    r'SFMR V$_{max}$: %.1f (kt)' % (np.nanmax(hdobs.sfmr), ),
-    'Simplfied Franklin: %.1f (kt)' % (sf_frac*np.nanmax(wspd_earth*1.94), ) ))
+    r'$\bf{SWANN\ V_{max}:\ %.1f}$' % (np.nanmax(sfc_wind_pred*1.94), ),
+    r'SFMR V$_{max}$: %.1f' % (np.nanmax(hdobs.sfmr), ),
+    'Simplfied Franklin: %.1f' % (sf_frac*np.nanmax(wspd_earth*1.94), ) ))
 
 # convert coords, first to cartesian
 if sam_fn == 'samurai_RTZ_analysis.nc':
@@ -643,8 +631,6 @@ norm = colors.BoundaryNorm(boundaries=bounds,ncolors=len(bounds))
 
 mymap = colors.ListedColormap(cs)
 
-line = Line2D([0], [0], label='RMW', color='k', linestyle='--')
-
 fig = plt.figure(figsize=(8.5,7))
 #fig = plt.figure(constrained_layout=True,figsize=(8,6))
 gs = fig.add_gridspec(3,3,height_ratios=[1.0,0.05,1.0])
@@ -655,16 +641,13 @@ f_ax4 = fig.add_subplot(gs[2, :-1])
 f_ax5 = fig.add_subplot(gs[2, -1])
 c1 = f_ax1.contourf(x_plot/1.852, y_plot/1.852, sfc_wind_pred*1.94, levels=bounds, norm=norm, cmap=mymap, extend='max');
 c2 = f_ax2.contourf(x_plot/1.852, y_plot/1.852, mag_3km*1.94, levels=bounds, norm=norm, cmap=mymap, extend='max');
-ln2, = f_ax2.plot(x_plane/1.852,y_plane/1.852,'k')
-f_ax2.legend([ln2],['flight path'])
+f_ax2.plot(x_plane/1.852,y_plane/1.852,'k')
 #c1 = f_ax1.contourf(x_plot, y_plot, sfc_wind_pred*1.94, levels=np.arange(0,cmax,cstep), cmap='Spectral_r', extend='max')
 #c2 = f_ax2.contourf(x_plot, y_plot, mag_3km*1.94, levels=np.arange(0,cmax,cstep), cmap='Spectral_r', extend='max')
 c3 = f_ax3.contourf(x_plot/1.852, y_plot/1.852, sfc_wind_pred/mag_3km, levels=np.arange(0.75,1.05,0.05), cmap='coolwarm', extend='both')
-f_ax1.contour(x_plot/1.852, y_plot/1.852, rd/1.852, levels=np.array([swann_rmw/1.852]), colors='k', linestyles='dotted');
-f_ax1.legend([line],['RMW'])
+f_ax1.contour(x_plot/1.852, y_plot/1.852, rd/1.852, levels=np.array([sam_rmw/1.852]), colors='k', linestyles='dotted');
 #f_ax2.contour(x_plot, y_plot, rd, levels=np.array([sam_rmw]), colors='k', linestyles='dotted');
-f_ax3.contour(x_plot/1.852, y_plot/1.852, rd/1.852, levels=np.array([swann_rmw/1.852]), colors='k', linestyles='dotted');
-f_ax3.legend([line],['RMW'])
+f_ax3.contour(x_plot/1.852, y_plot/1.852, rd/1.852, levels=np.array([sam_rmw/1.852]), colors='k', linestyles='dotted');
 f_ax1.set_aspect('equal')
 f_ax2.set_aspect('equal')
 f_ax3.set_aspect('equal')

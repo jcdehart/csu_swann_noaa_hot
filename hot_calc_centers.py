@@ -90,9 +90,9 @@ def read_hdobs(plane, storm):
     else:
         print('issue with hdobs timing order')
 
-    # convert lat/lon to good format
-    hdobs_all['lat'] = full_ts[1].str.strip().str[:-1].astype('float')/100.
-    hdobs_all['lon'] = full_ts[2].str.strip().str[:-1].astype('float')/100.
+    # convert lat/lon to good format (degrees and then MINUTES #facepalm)
+    hdobs_all['lat'] = full_ts[1].str.strip().str[:2].astype('float') + full_ts[1].str.strip().str[2:-1].astype('float')/60.
+    hdobs_all['lon'] = full_ts[2].str.strip().str[:3].astype('float') + full_ts[2].str.strip().str[3:-1].astype('float')/60.
     hdobs_all.loc[full_ts[1].str.strip().str[-1:] == 'S','lat'] = hdobs_all.loc[full_ts[1].str.strip().str[-1:] == 'S','lat']*-1
     hdobs_all.loc[full_ts[2].str.strip().str[-1:] == 'W','lon'] = hdobs_all.loc[full_ts[2].str.strip().str[-1:] == 'W','lon']*-1
 

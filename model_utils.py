@@ -1,6 +1,7 @@
 # Model helper functions for the Sfc Wind Reduciton Factor NN Model
 # Created by Alex DesRosiers - 7/14/21 for stable release that day
 # Modified on 6/5/24 for a model to predict inward to r* of 0.3 for 2024 demo
+# Modified on 7/18/24 to account for 600 to 900 mb pressure levels in a new model (v2)
 
 #Import Statements
 import numpy as np
@@ -12,8 +13,8 @@ def Standardize_Vars(in_arr):
     standardize_input = lambda dat, x, s: (dat - x)/s 
 
     # Have the mean and standard deviation of the training data available
-    trainmean = np.asarray([208260733.15548772,9122344.32929131,-2249677.0113748824,3197555171.286402,266144603523.7468,9341130392.738155,525596005.4661528,4699141504.365173])
-    trainstd  = np.asarray([119447962.3632483,70579074.96233349,70216208.70385674,1101969187.1836104,64474224148.556526,3130458640.5860677,220701806.7476198,1985543331.1573339])
+    trainmean = np.asarray([207122776.2193164,9026046.992487332,-2067238.5593969964,3162731722.776655,264507987393.2525,9214747690.399755,518016318.67406046,4677333121.855429])
+    trainstd  = np.asarray([119279476.74477464,70963947.68521449,69845365.84024948,1100503807.6582718,62943084141.181984,3152651002.4613976,225257228.24457613,2008245027.708318])
     trainmean = trainmean/100000000 # Kept precision with this division to get back to true vales
     trainstd = trainstd/100000000
     out_arr = standardize_input(in_arr,trainmean,trainstd)
