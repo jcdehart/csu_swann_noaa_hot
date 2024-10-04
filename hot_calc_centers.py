@@ -68,10 +68,23 @@ def read_hdobs(plane, storm):
     good = []
     for i in range(len(dfs)): 
         dfs[i][0] = files[i][-17:-9]+dfs[i][0] # add YYYYMMDD to existing time strings
+
+        # altitude check to see if transit flight mixed in
+        # STILL NEED TO FIX MULTIPLE PLANES IN STORM AT ONCE *******
+        hdob_alt = dfs[i][4].astype('float')
+        if (np.nanmean(hdob_alt) > 5000):
+            print(np.nanmean(hdob_alt))
+            print('altitude higher than 5000 m, possibly transit')
+            print('deleting file '+files[i])
+            os.system('rm -rf '+files[i])
+            continue
         
         # make sure file all correspond to same storm
         if (os.system('grep '+storm+' '+files[i]) != 256):
             good.append(i)
+        elif (os.system('grep TDR '+files[i]) != 256):
+            good.append(i)
+            print('storm name not found, but TDR string found - unnamed storm?')
         else:
             print('storm name not found in HDOBS')
             # maybe delete files?
@@ -258,10 +271,17 @@ def center_adeck(args, samurai_time):
     adeck2 = [x.split(',') for x in adeck]
     cols = ['BASIN', 'CY', 'YYYYMMDDHH', 'TECHNUM/MIN', 'TECH', 'TAU', 'LatN/S', 'LonE/W', 'VMAX', 'MSLP', 'TY', 'RAD', 'WINDCODE', 'RAD1', 'RAD2', 'RAD3', 'RAD4', 'POUTER', 'ROUTER', 'RMW', 'GUSTS', 'EYE', 'SUBREGION', 'MAXSEAS', 'INITIALS', 'DIR', 'SPEED', 'STORMNAME', 'DEPTH', 'SEAS', 'SEASCODE', 'SEAS1', 'SEAS2', 'SEAS3', 'SEAS4', 'USERDEFINED']
     cols_drop = ['BASIN', 'CY', 'TECHNUM/MIN', 'TECH', 'TY', 'POUTER', 'ROUTER', 'EYE', 'SUBREGION', 'MAXSEAS', 'INITIALS', 'STORMNAME', 'DEPTH', 'SEAS', 'SEASCODE', 'SEAS1', 'SEAS2', 'SEAS3', 'SEAS4', 'USERDEFINED']
+    cols_sm = ['BASIN', 'CY', 'YYYYMMDDHH', 'TECHNUM/MIN', 'TECH', 'TAU', 'LatN/S', 'LonE/W', 'VMAX', 'MSLP', 'TY', 'RAD', 'WINDCODE', 'RAD1', 'RAD2', 'RAD3', 'RAD4', 'POUTER', 'ROUTER', 'RMW', 'GUSTS', 'EYE', 'SUBREGION', 'MAXSEAS', 'INITIALS', 'DIR', 'SPEED','newline']
+    cols_drop_sm = ['BASIN', 'CY', 'TECHNUM/MIN', 'TECH', 'TY', 'POUTER', 'ROUTER', 'EYE', 'SUBREGION', 'MAXSEAS', 'INITIALS','newline']
 
     df = pd.DataFrame(adeck2) # not sure why this went away.... .transpose()
-    df.columns = cols
-    df = df.drop(columns=cols_drop)
+    if df.shape[1] == 28:
+        df.columns = cols_sm
+        df = df.drop(columns=cols_drop_sm)
+    else:
+        df.columns = cols
+        df = df.drop(columns=cols_drop)
+
     df2 = pd.to_datetime(df.YYYYMMDDHH.str.strip(), format='%Y%m%d%H', utc=True) + pd.to_timedelta(df.TAU.str.strip().astype('int'), "h")
     df2 = pd.concat([df2,df[['VMAX','RAD1','RAD2','RAD3','RAD4','DIR','SPEED']].apply(pd.to_numeric, errors='coerce', axis=1)], axis=1)
     df2 = df2.rename(columns={0: "dt"})

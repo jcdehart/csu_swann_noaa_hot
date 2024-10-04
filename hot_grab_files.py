@@ -29,7 +29,9 @@ def create_dataframe(inDir, start_time, end_time):
 
 def shrink_df(df, start_time, end_time, storm_name, af):
 
-    mask = (df['datetime'] >= (start_time - pd.Timedelta(10,unit='m'))) & (df['datetime'] <= (end_time + pd.Timedelta(10,unit='m')))
+    # reducing to a 1-min buffer for now
+    #mask = (df['datetime'] >= (start_time - pd.Timedelta(5,unit='m'))) & (df['datetime'] <= (end_time + pd.Timedelta(5,unit='m')))
+    mask = (df['datetime'] >= (start_time - pd.Timedelta(10,unit='m'))) & (df['datetime'] <= (end_time + pd.Timedelta(10,unit='m'))) # with 10-min buffer, removing for now
     df_sm = df.loc[mask].reset_index(drop=True)
         
     if df_sm.path.str.contains('hdobs').iloc[0]:
@@ -46,6 +48,12 @@ def shrink_df(df, start_time, end_time, storm_name, af):
         # only retain paths that match the storm name passed to function
         df_sm = df_sm.join(pd.DataFrame(hdob_header,columns=['plane','mission','storm','hdob','num','date'],dtype=str))
         df_storm = df_sm[df_sm.storm == storm_name]
+
+        # check to see if storm hasn't been named yet
+        if df_storm.shape[0] == 0:
+            print('data frame empty, testing TDR flag for unnamed storm')
+            df_storm = df_sm[df_sm.storm == 'TDR']
+
         
         # depending on plane, restrict file list to relevant plane
         AF_mask = df_storm.plane.str.contains('AF')

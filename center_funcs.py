@@ -137,12 +137,24 @@ def peaks_wc(peaks_refined, approaches, lat_f, lon_f, wdir_rel, dt_f):
     #
     for cpo in range(0, approaches):
         i = 0
-        latsub = lat_f[peaks_refined[cpo]-50:peaks_refined[cpo]+51]
-        lonsub = lon_f[peaks_refined[cpo]-50:peaks_refined[cpo]+51]
-        wdirsub = wdir_rel[peaks_refined[cpo]-50:peaks_refined[cpo]+51]
+        
+        # deal with peaks that are within 50 indices of either end of time series
+        if (peaks_refined[cpo]-50 < 0):
+            st = 0
+        else:
+            st = peaks_refined[cpo]-50
+
+        if (peaks_refined[cpo]+51 >= len(lat_f)):
+            en = -1
+        else:
+            en = peaks_refined[cpo]+51
+
+        latsub = lat_f[st:en]
+        lonsub = lon_f[st:en]
+        wdirsub = wdir_rel[st:en]
 	
 	# Date information
-        dtsub = dt_f[peaks_refined[cpo]-50:peaks_refined[cpo]+51].reset_index()
+        dtsub = dt_f[st:en].reset_index()
 	
 	# Initialize matrices
         b0 = 0
