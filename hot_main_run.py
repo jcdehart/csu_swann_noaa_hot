@@ -233,8 +233,10 @@ print('averaging all 3 centers')
 
 # perhaps have different weights based on tcvitals intensity??? ********
 wgt = np.array([1, 1, 3])
-storm_lon = np.average(np.array([lon_wc,storm_lon_1,storm_lon_2]),weights=wgt)
-storm_lat = np.average(np.array([lat_wc,storm_lat_1,storm_lat_2]),weights=wgt)
+storm_lon = lon_wc
+storm_lat = lat_wc
+#storm_lon = np.average(np.array([lon_wc,storm_lon_1,storm_lon_2]),weights=wgt)
+#storm_lat = np.average(np.array([lat_wc,storm_lat_1,storm_lat_2]),weights=wgt)
 #storm_lon = np.nanmean(np.array([lon_wc,storm_lon_1,storm_lon_2]))
 #storm_lat = np.nanmean(np.array([lat_wc,storm_lat_1,storm_lat_2]))
 u_motion = np.nanmean(np.array([u_motion_1,u_motion_2]))
@@ -571,7 +573,7 @@ textstr = '\n'.join((
     'SWANN RMW: %.1f (nm)' % (swann_rmw/1.852, ),
     r'$\bf{SWANN\ V_{max}:\ %.1f\ (kt)}$' % (np.nanmax(sfc_wind_pred*1.94), ),
     #r'SFMR V$_{max}$: %.1f (kt)' % (np.nanmax(hdobs.sfmr), ),
-    'Simplfied Franklin: %.1f (kt)' % (sf_frac*np.nanmax(wspd_earth*1.94), ) ))
+    'Simplified Franklin: %.1f (kt)' % (sf_frac*np.nanmax(wspd_earth*1.94), ) ))
 
 # convert coords, first to cartesian
 if sam_fn == 'samurai_RTZ_analysis.nc':
@@ -726,7 +728,7 @@ cb1 = plt.colorbar(mappable=c1,cax=fig.add_subplot(gs[1,:2]), orientation='horiz
 cb1.ax.set_title('');
 cb3 = plt.colorbar(mappable=c3,cax=fig.add_subplot(gs[1,2]), orientation='horizontal', ticks=[0.75, 0.85, 0.95, 1.05])
 cb3.ax.set_title('');
-fig.savefig(imDir+args.STORM+'_'+analysis_time+'_4pan_'+mode+'.png', dpi=200, bbox_inches='tight')
+fig.savefig(imDir+args.STORM+'_'+analysis_time+'_4pan.png', dpi=200, bbox_inches='tight')
 #fig.savefig(imDir+args.STORM+'_'+args.ANALYSISTIME+'_4pan_'+ml_ver+mode+'.png', dpi=200, bbox_inches='tight')
 
 

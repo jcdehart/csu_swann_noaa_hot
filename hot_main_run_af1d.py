@@ -48,14 +48,19 @@ def xy(lat, lon, lat0, lon0):
     lon_plane = np.radians(lon)
     lat_cen = np.radians(lat0)
     lon_cen = np.radians(lon0)
+    #dlon = lon_cen - lon_plane
+    #dlat = lat_cen - lat_plane
     dlon = lon_plane - lon_cen
     dlat = lat_plane - lat_cen
+    #a = np.sin(dlat / 2)**2 + np.cos(lat_plane) * np.cos(lat_cen) * np.sin(dlon / 2)**2
     a = np.sin(dlat / 2)**2 + np.cos(lat_cen) * np.cos(lat_plane) * np.sin(dlon / 2)**2
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
     distance = R * c
+    #bearing = np.arctan2(np.sin(lon_cen-lon_plane)*np.cos(lat_cen), np.cos(lat_plane)*np.sin(lat_cen)-np.sin(lat_plane)*np.cos(lat_cen)*np.cos(lon_cen-lon_plane))
     bearing = np.arctan2(np.sin(lon_plane-lon_cen)*np.cos(lat_plane), np.cos(lat_cen)*np.sin(lat_plane)-np.sin(lat_cen)*np.cos(lat_plane)*np.cos(lon_plane-lon_cen))
-    x = distance*np.cos(bearing)
-    y = distance*np.sin(bearing)
+    #bearing is in north-facing coords...
+    x = distance*np.cos(-1*(bearing-(np.pi/2)))
+    y = distance*np.sin(-1*(bearing-(np.pi/2)))
     return(x,y)
 
 #%% main code: step 1 - make center file from tcvitals of flight+ file (hot_calc_centers)
@@ -64,7 +69,7 @@ def xy(lat, lon, lat0, lon0):
 parser = argparse.ArgumentParser()
 parser.add_argument("STORM", help="storm name (all caps)", type=str)
 #parser.add_argument("CENTIME", help="cen datetime (YYYYMMDDHHMM)", type=str)
-parser.add_argument("ANALYSISTIME", help="samurai analysis datetime (YYYYMMDDHHMM)", type=str)
+#parser.add_argument("ANALYSISTIME", help="samurai analysis datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("STARTTIME", help="samurai start datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("ENDTIME", help="samurai end datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("--CENFN", default="gfs.tXXz.syndata.tcvitals.tm00", help="TC Vitals filename", type=str)
@@ -101,9 +106,10 @@ ml_file = 'HS24_SCL_2DNN_model_v2.h5'
 json_fn = 'HS24_SCL_2DNN_model_v2.json'
 
 
-samurai_time = pd.to_datetime(args.ANALYSISTIME,format='%Y%m%d%H%M',utc=True)
+#samurai_time = pd.to_datetime(args.ANALYSISTIME,format='%Y%m%d%H%M',utc=True)
 leg_start = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True)
 leg_end = pd.to_datetime(args.ENDTIME,format='%Y%m%d%H%M',utc=True)
+samurai_time = leg_start + ((leg_end-leg_start)/2).round('min')
 print('\n')
 print('leg start time: '+leg_start.strftime('%Y%m%d%H%M'))
 print('leg end time: '+leg_end.strftime('%Y%m%d%H%M'))
@@ -171,17 +177,17 @@ print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc))
 #print('W-C center lat: '+str(lat_wc[0])+', center lon: '+str(lon_wc[0]))
 print(dt_wc)
 
-print('averaging all 3 centers')
+#print('averaging all 3 centers')
 
 # perhaps have different weights based on tcvitals intensity??? ********
-wgt = np.array([1, 1, 3])
-storm_lon = np.average(np.array([lon_wc,storm_lon_1,storm_lon_2]),weights=wgt)
-storm_lat = np.average(np.array([lat_wc,storm_lat_1,storm_lat_2]),weights=wgt)
+wgt = np.array([1, 1, 5])
+#storm_lon = np.average(np.array([lon_wc,storm_lon_1,storm_lon_2]),weights=wgt)
+#storm_lat = np.average(np.array([lat_wc,storm_lat_1,storm_lat_2]),weights=wgt)
 #storm_lon = np.nanmean(np.array([lon_wc,storm_lon_1,storm_lon_2]))
 #storm_lat = np.nanmean(np.array([lat_wc,storm_lat_1,storm_lat_2]))
 u_motion = np.nanmean(np.array([u_motion_1,u_motion_2]))
 v_motion = np.nanmean(np.array([v_motion_1,v_motion_2]))
-print([storm_lat, storm_lon])
+#print([storm_lat, storm_lon])
 print([u_motion, v_motion])
 
 # grab plane altitude manually
@@ -215,6 +221,7 @@ else:
 
 # convert hdobs to xy
 x_plane,y_plane = xy(hdobs.lat.values,hdobs.lon.values,lat_wc,lon_wc)
+print('Using W-C center')
 
 #%% main code: step 3 - neural net
 
@@ -330,7 +337,7 @@ textstr = '\n'.join((
     'SWANN RMW: %.1f (nm)' % (swann_rmw, ),
     r'$\bf{SWANN\ V_{max}:\ %.1f\ (kt)}$' % (np.nanmax(sfc_wind_pred*1.94), ),
     r'SFMR V$_{max}$: %.1f (kt)' % (np.nanmax(hdobs.sfmr), ),
-    'Simplfied Franklin: %.1f (kt)' % (sf_frac*np.nanmax(wspd_earth*1.94), ) ))
+    'Simplified Franklin: %.1f (kt)' % (sf_frac*np.nanmax(wspd_earth*1.94), ) ))
 
 # convert coords, first to cartesian
 #if sam_fn == 'samurai_RTZ_analysis.nc':
@@ -343,16 +350,35 @@ textstr = '\n'.join((
 #%% main code: step 5 - generate any images
 # x,y instead of lat/lon? 
 
+x_plot, y_plot = np.meshgrid(np.arange(np.nanmin(x_plane),np.nanmax(x_plane)), 
+    np.arange(np.nanmin(y_plane),np.nanmax(y_plane)))
+radii = np.sqrt(x_plot**2 + y_plot**2)
+print(radii)
+print(x_plot)
+print(y_plot)
+
 fig = plt.figure(figsize=(8.5,3.5))
 #fig = plt.figure(constrained_layout=True,figsize=(8,6))
 gs = fig.add_gridspec(1,3)
 f_ax4 = fig.add_subplot(gs[0, :-1])
 f_ax5 = fig.add_subplot(gs[0, -1])
 f_ax4.plot(hdobs.dt, hdobs.sfmr, 'k',hdobs.dt, hdobs.wsp, 'r',hdobs.dt, sfc_wind_pred*1.94, 'green')
+f_ax4.plot(hdobs.dt.values[0], hdobs.wsp.values[0], 'rx') # flight start
+f_ax4.plot(hdobs.dt.values[-1], hdobs.wsp.values[-1], 'ro') # flight end
+axins = f_ax4.inset_axes(
+    [0.03, 0.6, 0.27, 0.37], xticklabels=[], yticklabels=[])
+axins.plot(x_plane, y_plane,'r')
+axins.plot(x_plane[0], y_plane[0],'rx')
+axins.plot(x_plane[-1], y_plane[-1],'ro')
+axins.plot(0, 0,'r*')
+#axins.contour(x_plot, y_plot, radii, levels=np.array([swann_rmw]), colors='r', linestyles='dotted');
+#axins.contour(x_plot/1.852, y_plot/1.852, rd/1.852, levels=np.array([swann_rmw/1.852]), colors='r', linestyles='dotted');
+
 f_ax5.text(0.0, 0.95, textstr, transform=f_ax5.transAxes, fontsize=11,verticalalignment='top')
 f_ax5.set_axis_off()
 f_ax4.legend(['SFMR','FL','SWANN'])
 f_ax4.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+f_ax4.grid(True)
 f_ax4.set_ylabel('wind speed (kt)')
-fig.savefig(imDir+args.STORM+'_'+args.ANALYSISTIME+'_af_2pan_'+ml_ver+mode+'.png', dpi=200, bbox_inches='tight')
+fig.savefig(imDir+args.STORM+'_'+samurai_time.strftime(format='%Y%m%d%H%M')+'_af_2pan.png', dpi=200, bbox_inches='tight')
 

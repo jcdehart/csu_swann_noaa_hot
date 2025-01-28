@@ -166,12 +166,12 @@ def peaks_wc(peaks_refined, approaches, lat_f, lon_f, wdir_rel, dt_f):
         tm0 = cs * cs
         tm1 = cs * sn
         tm2 = sn * sn
-        m00 = np.sum(tm2)
-        m01 = np.sum(tm1)
-        m10 = np.sum(tm1)
-        m11 = np.sum(tm0)
-        b0 = np.matmul(tm1, latsub) + np.matmul(tm2, lonsub)
-        b1 = np.matmul(tm1, lonsub) + np.matmul(tm0, latsub)
+        m00 = np.nansum(tm2)
+        m01 = np.nansum(tm1)
+        m10 = np.nansum(tm1)
+        m11 = np.nansum(tm0)
+        b0 = np.matmul(tm1[~np.isnan(tm1)], latsub[~np.isnan(tm1)]) + np.matmul(tm2[~np.isnan(tm1)], lonsub[~np.isnan(tm1)])
+        b1 = np.matmul(tm1[~np.isnan(tm1)], lonsub[~np.isnan(tm1)]) + np.matmul(tm0[~np.isnan(tm1)], latsub[~np.isnan(tm1)])
         dts = m00 * m11 - m10 * m01
         dty = m00 * b1 - m01 * b0
         dtx = m10 * b1 - m11 * b0
@@ -183,7 +183,9 @@ def peaks_wc(peaks_refined, approaches, lat_f, lon_f, wdir_rel, dt_f):
         difflon = lonsub - rellon
         difflat = latsub - rellat
         errorl = np.sqrt(difflon * difflon + difflat * difflat)
-        #print(dtsub)
+        #print(b0)
+        #print(b1)
+        #print(m00)
         #print(dt_f)
         imin = np.argmin(errorl)
         #print(imin)

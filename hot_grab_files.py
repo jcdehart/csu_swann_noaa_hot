@@ -10,7 +10,7 @@ def create_dataframe(inDir, start_time, end_time):
     if inDir.find('hrd_radials') != -1:
         ext = '[0-9].list.gz'
     elif inDir.find('hdobs') != -1:
-        ext = '.txt'
+        ext = '[0-9].txt'
     else:
         print("issue with inDir")
 
@@ -21,7 +21,7 @@ def create_dataframe(inDir, start_time, end_time):
         start = len(inDir) + 6
     elif inDir.find('hdobs') != -1:
         start = df_orig['path'][0].find('.'+str(start_time.year)) + 1
-        
+
     df_orig['datetime'] = pd.to_datetime(df_orig['path'].str[start:start+12], format='%Y%m%d%H%M', utc=True)
     
     return df_orig
