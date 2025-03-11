@@ -23,10 +23,12 @@ from samurai_gen_file import make_cen_file, modify_param_file
 import hot_grab_files
 import hot_calc_centers
 import center_funcs
+import hot_prep_data
 from matplotlib.ticker import AutoMinorLocator
 import matplotlib.colors as colors
 import matplotlib.dates as mdates
 from matplotlib.lines import Line2D
+from matplotlib.font_manager import FontProperties
 
 
 plt.rcParams.update({'mathtext.default':  'regular' })
@@ -70,8 +72,6 @@ def xy(lat, lon, lat0, lon0):
 # grab info from tcvitals or flight+ file
 parser = argparse.ArgumentParser()
 parser.add_argument("STORM", help="storm name (all caps)", type=str)
-#parser.add_argument("CENTIME", help="cen datetime (YYYYMMDDHHMM)", type=str)
-#parser.add_argument("ANALYSISTIME", help="samurai analysis datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("STARTTIME", help="samurai start datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("ENDTIME", help="samurai end datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("--CENFN", default="gfs.tXXz.syndata.tcvitals.tm00", help="TC Vitals filename", type=str)
@@ -80,14 +80,11 @@ parser.add_argument("--CENTYPE", default="tcvitals", help="center type (tcvitals
 args = parser.parse_args()
 
 # ***** change into an argument, or change to start time + duration, model will be settled in future, deal with af only later
-#dur = 45
 cyl = False
 af = False
 #alt_plane = 1.5
 #alt_plane = 3.0
-#ml_ver = 'WSPD'
 ml_ver = 'FRED'
-#ml_ver = 'DERR'
 
 if cyl == True:
     mode = '_cyl'
@@ -99,60 +96,22 @@ else:
 inDir = '/bell-scratch/jcdehart/hot/'
 data_dir = inDir+'ingest_dir/'
 ml_dir_base = inDir+'ML_models/'
-#ml_dir_base = inDir+'ML_models/stable_model/'
 sam_dir_base = inDir+'samurai_parent/'
 sam_ingest_dir = inDir+'samurai_parent/samurai_input/'
 output_dir = inDir+'nn_testing/'
 imDir = inDir+'images/'
 
-if ml_ver == 'WSPD':
-    ml_dir = ml_dir_base + 'AGU_23/'
-    ml_file = 'NN_MSE_SCL_pred_v2.h5'
-    #ml_dir = ml_dir_base + 'old_stable_model_v1/'
-    #ml_file = 'NN_SCL20_model_v8.h5'
-    json_fn = 'model.json'
-elif ml_ver == 'FRED':
-    ml_dir = ml_dir_base + 'Current_HOT_Model/'
-    #ml_dir = ml_dir_base + 'Dissertation_Model_Files/'
-    #ml_dir = ml_dir_base + 'Stable_2DNN_Model/'
-    #ml_dir = ml_dir_base + 'current_stable_model_v2/'
-    ml_file = 'HS24_SCL_2DNN_model_v2.h5'
-    #ml_file = 'HS24_SCL_2DNN_model_v1.h5'
-    #ml_file = 'Dissertatiomn_SCL_2DNN_model_v3.h5'
-    #ml_file = 'Dissertatiomn_SCL_2DNN_model_v2.h5'
-    json_fn = 'HS24_SCL_2DNN_model_v2.json'
-    #json_fn = 'HS24_SCL_2DNN_model_v1.json'
-    #json_fn = 'Dissertatiomn_SCL_2DNN_model_v3.json'
-    #json_fn = 'Dissertatiomn_SCL_2DNN_model_v2.json'
-    #ml_file = 'NN_WRpred_v4.h5'
-elif ml_ver == 'DERR':
-    ml_dir = ml_dir_base + 'stable_model_2d/'
-    ml_file = 'NN_MSE_SCL_ERRpred_v1.h5'
-    json_fn = 'model.json'
+ml_dir = ml_dir_base + 'Current_HOT_Model/'
+ml_file = 'HS24_SCL_2DNN_model_v2.h5'
+json_fn = 'HS24_SCL_2DNN_model_v2.json'
 
-
-#samurai_time = pd.to_datetime(args.ANALYSISTIME,format='%Y%m%d%H%M',utc=True)
 leg_start = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True)
 leg_end = pd.to_datetime(args.ENDTIME,format='%Y%m%d%H%M',utc=True)
-#leg_start = samurai_time - pd.Timedelta(dur, 'min')
-#leg_end = samurai_time + pd.Timedelta(dur, 'min')
 samurai_time = leg_start + ((leg_end-leg_start)/2).round('min')
 analysis_time = samurai_time.strftime('%Y%m%d%H%M')
 print('\n')
 print('leg start time: '+leg_start.strftime('%Y%m%d%H%M'))
 print('leg end time: '+leg_end.strftime('%Y%m%d%H%M'))
-
-## grab center from tcvitals
-#storm_lat_2, storm_lon_2, storm_intens_2, storm_rmw, storm_dir_2, storm_motion_2, center_time_2, u_motion_2, v_motion_2, storm_dir_rot_2, storm_name_2 = hot_calc_centers.center_tcvitals(args)
-
-## grab center from adeck
-#storm_lat, storm_lon, storm_intens, storm_dir, storm_motion, df, u_motion, v_motion, storm_dir_rot = hot_calc_centers.center_adeck(args, samurai_time)
-#
-#print('\n')
-#print('center stats from adeck and tcvitals:')
-#print([storm_lat, storm_lon, storm_intens, np.nan, storm_dir, storm_motion, u_motion, v_motion, storm_dir_rot])
-#print([storm_lat_2, storm_lon_2, storm_intens_2, storm_rmw, storm_dir_2, storm_motion_2, u_motion_2, v_motion_2, storm_dir_rot_2])
-#print('using adeck center')
 
 # grab center from tcvitals (renaming storm_name to storm_name_2)....****
 storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motion, center_time, u_motion_1, v_motion_1, storm_dir_rot, storm_name_2 = hot_calc_centers.center_tcvitals(args)
@@ -164,7 +123,6 @@ print('\n')
 print('center stats from tcvitals and adeck:')
 print([storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motion, u_motion_1, v_motion_1, storm_dir_rot])
 print([storm_lat_2, storm_lon_2, storm_intens_2, np.nan, storm_dir_2, storm_motion_2, u_motion_2, v_motion_2, storm_dir_rot_2])
-#print('using tcvitals center')
 
 # more center finding from files will go here... flight plus *********
 
@@ -226,7 +184,6 @@ lon_wc = hdobs.lon.iloc[dt_wc[0]]
 lat_wc = hdobs.lat.iloc[dt_wc[0]]
 
 print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc))
-#print('W-C center lat: '+str(lat_wc[0])+', center lon: '+str(lon_wc[0]))
 print(dt_wc)
 
 print('averaging all 3 centers')
@@ -237,8 +194,6 @@ storm_lon = lon_wc
 storm_lat = lat_wc
 #storm_lon = np.average(np.array([lon_wc,storm_lon_1,storm_lon_2]),weights=wgt)
 #storm_lat = np.average(np.array([lat_wc,storm_lat_1,storm_lat_2]),weights=wgt)
-#storm_lon = np.nanmean(np.array([lon_wc,storm_lon_1,storm_lon_2]))
-#storm_lat = np.nanmean(np.array([lat_wc,storm_lat_1,storm_lat_2]))
 u_motion = np.nanmean(np.array([u_motion_1,u_motion_2]))
 v_motion = np.nanmean(np.array([v_motion_1,v_motion_2]))
 print([storm_lat, storm_lon])
@@ -275,7 +230,6 @@ else:
 
 
 # create center file
-# ***** update time to something more flexible, or include in inputs
 ref_latlon_cart = make_cen_file(samurai_time, leg_start, leg_end, storm_lat, storm_lon, u_motion, v_motion, './samurai_parent/samurai_input/')
 #ref_latlon_cart = make_cen_file(samurai_time, samurai_time, dur, storm_lat, storm_lon, u_motion, v_motion, './samurai_parent/samurai_input/')
 
@@ -329,9 +283,6 @@ else:
     rmw_avg = np.nanmean(rmw_all)
 print('\n')
 print('avg xc: '+str(xc_avg)+', yc: '+str(yc_avg)+', rmw: '+str(rmw_avg))
-#print(xc_all)
-#print(yc_all)
-#print(rmw_all)
 
 # interpolate center to lat/lon
 ncfile_cart = Dataset(cart_file)
@@ -360,8 +311,6 @@ if cyl == True:
 
     # changing ref time to time associated with storm center
     ref_latlon = make_cen_file(dt_wc[0], leg_start, leg_end, lat_wc, lon_wc, u_motion, v_motion, './samurai_parent/samurai_input/')
-    #ref_latlon = make_cen_file(dt_wc[0], samurai_time, dur, lat_wc[0], lon_wc[0], u_motion, v_motion, './samurai_parent/samurai_input/')
-    #ref_latlon = make_cen_file(samurai_time, samurai_time, dur, sam_lat, sam_lon, u_motion, v_motion, './samurai_parent/samurai_input/')
 
     # generate samurai params file from master
     analysis_dir = modify_param_file(dt_wc[0], './samurai_parent/master_params/samurai_HOT_wave.params', './samurai_parent/samurai_params_cyl')
@@ -453,11 +402,6 @@ elif sam_fn == 'samurai_XYZ_analysis.nc':
     sam_rmw = rmw_avg
 
 
-## RMW
-# normalize wrt RMW and ravel data
-r_norm = rd.ravel(order='C')/sam_rmw
-#r_norm = rd.ravel(order='C')/storm_rmw
-
 # compare RMW values ( ***edit for coverage in samurai analysis*** )
 print('\n')
 print('tcvitals RMW: '+str(storm_rmw))
@@ -465,39 +409,9 @@ print('tcvitals intens: '+str(storm_intens))
 print('samurai FL RMW: '+str(sam_rmw))
 print('samurai FL intens: '+str(np.nanmax(wspd_earth)))
 
-## THETA
-# convert samurai theta from math degrees (i.e., 0 = right) to met degrees (i.e., 0 = north)
-theta_met = 90 + (360 - th)
-theta_met[theta_met > 360] = theta_met[theta_met > 360] - 360
-
-# rotate theta with respect to storm motion and convert to radians
-theta_motionrel = theta_met - storm_dir
-theta_motionrel[theta_motionrel < 0] = theta_motionrel[theta_motionrel < 0] + 360
-theta_nr = np.radians(theta_motionrel.ravel(order='C'))
-
-## FLIGHT LEVEL WIND
-# grab flight level wind (i.e., 3 km) and reshape
-FL_wind = wspd_earth.ravel(order='C')
-
-## REMAINING
-# set up 2-D arrays of repeating scalar values for flight level (make automatic), best track vmax (knots), storm motion magnitude (m/s)
-alt = np.zeros_like(FL_wind)
-if af == True:
-    alt[:] = alt_plane*1000 # m
-else:
-    alt[:] = alt_plane*1000 # m
-
-BT_Vmax = np.zeros_like(FL_wind)
-BT_Vmax[:] = storm_intens*1.94 # convert to knots
-SM_mag = np.zeros_like(FL_wind)
-SM_mag[:] = storm_motion
-RMW_arr = np.zeros_like(FL_wind)
-RMW_arr[:] = sam_rmw
-
-# normalized r (r/rmw), theta (wrt motion) x2, wind, altitude, vmax, storm motion magnitude
-X_ratio = np.asarray([r_norm, theta_nr, theta_nr, FL_wind, alt, BT_Vmax, SM_mag, RMW_arr])  #double up on angle for sin and cosine
-X_ratio[1,:] = np.sin(X_ratio[1,:]) # converted to radians above
-X_ratio[2,:] = np.cos(X_ratio[2,:])
+# prepare variables for NN model - SAMURAI wind field
+# expected units of input vars (for this function, not model): km, km, deg (math), deg (math), kts, m/s, m/s, km
+X_ratio, r_norm = hot_prep_data.process_nn_vars(rd, sam_rmw, th, storm_dir, storm_intens, storm_motion, wspd_earth, alt_plane, af)
 
 # standardize data
 x_data = model_utils.Standardize_Vars(X_ratio.T)
@@ -508,18 +422,7 @@ predict[r_norm < 0.3] = np.nan
 #predict[r_norm < 0.5] = np.nan
 
 # reshape arrays and mask orig missing data
-# do diff math based on method
-if ml_ver == 'WSPD':
-    sfc_wind_pred = np.reshape(predict,u_storm.shape,order='C') # predicted surface wind
-elif ml_ver == 'FRED':
-    sfc_wind_pred = wspd_earth*np.reshape(predict,u_storm.shape,order='C') # multiply reduction factor and flight-level wind
-elif ml_ver == 'DERR':
-    sfc_wind_pred_oned = np.zeros_like(FL_wind)
-    sfc_wind_pred_oned[:] = np.nan
-    for i in range(len(predict)):
-        sfc_wind_pred_oned[i] = model_utils.FWR(700,r_norm[i],FL_wind[i]) - predict[i]
-    sfc_wind_pred = np.reshape(sfc_wind_pred_oned,u_storm.shape,order='C') # predicted wind errors
-
+sfc_wind_pred = wspd_earth*np.reshape(predict,u_storm.shape,order='C') # multiply reduction factor and flight-level wind
 
 # grab flight-level storm-relative data and remove bad data
 mag_3km_srel = np.sqrt(u_storm**2 + v_storm**2)
@@ -549,6 +452,35 @@ sfc_wind_pred[:,-4:] = np.nan
 u_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.cos(th_nc) - sfc_wind_pred*np.sin(np.radians(90-22.6))*np.sin(th_nc)
 v_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.sin(th_nc) + sfc_wind_pred*np.sin(np.radians(90-22.6))*np.cos(th_nc)
 
+### run aircraft data through model ###
+# create theta/radius grids
+rd_ac = np.sqrt(x_plane**2 + y_plane**2)
+th_r_ac = np.arctan2(y_plane, x_plane)
+th_ac = th_r_ac*180./np.pi
+
+wspd_earth_ac = hdobs.wsp.values/1.94 # CONVERTING HDOBS KTS TO M/S NEEDED FOR ALEX'S MODEL ******
+
+# prepare variables for NN model - HDOBs wind field
+# expected units of input vars (for this function, not model): km, km, deg (math), deg (math), kts, m/s, m/s, km
+X_ratio_ac, r_norm_ac = hot_prep_data.process_nn_vars(rd_ac, sam_rmw, th_ac, storm_dir, storm_intens, storm_motion, wspd_earth_ac, alt_plane, af)
+
+# standardize data
+x_data_ac = model_utils.Standardize_Vars(X_ratio_ac.T)
+
+# make prediction with the neural net
+predict_ac = nn_model.predict(x_data_ac)
+predict_ac[r_norm_ac < 0.3] = np.nan
+
+# reshape arrays and mask orig missing data
+sfc_wind_pred_ac = wspd_earth_ac*predict_ac.T[0] # multiply reduction factor and flight-level wind
+
+# grab flight-level storm-relative data and remove bad data
+mag_3km_ac = wspd_earth_ac
+sfc_wind_pred_ac[np.isnan(mag_3km_ac)] = np.nan
+sfc_wind_pred_ac[mag_3km_ac*1.94 < 20] = np.nan ##### UNITS ALREADY IN KTS
+sfc_wind_pred_ac[np.isnan(mag_3km_ac)] = np.nan
+mag_3km_ac[(rd_ac/sam_rmw < 0.3)] = np.nan
+
 #%% main code: step 4 - save output data as NetCDF (adapted from MetPy documentation)
 
 f = open(sam_dir+args.STORM+'_'+analysis_time+'_data.txt','w')
@@ -562,18 +494,22 @@ if alt_plane == 1.5:
 elif alt_plane == 3.0:
     sf_frac = 0.9
 
+sam_fl_vmax = np.nanmax(wspd_earth*1.94)
+hdobs_fl_vmax = np.nanmax(hdobs.wsp)
+swann_sam_vmax = np.nanmax(sfc_wind_pred*1.94)
+swann_hdobs_vmax = np.nanmax(sfc_wind_pred_ac*1.94)
+simp_frank = sf_frac*sam_fl_vmax
+
+figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_sm.mission.unique()[0] + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
+
 textstr = '\n'.join((
-    storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_sm.mission.unique()[0],
-    leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M'),
     'Inputs: HRD TDR, HDOBS',
-    '\n',
-    r'SAMURAI FL V$_{max}$: %.1f (kt)' % (np.nanmax(wspd_earth*1.94), ),
-    r'HDOB FL V$_{max}$: %.1f (kt)' % (np.nanmax(hdobs.wsp), ),
-    '\n',
-    'SWANN RMW: %.1f (nm)' % (swann_rmw/1.852, ),
-    r'$\bf{SWANN\ V_{max}:\ %.1f\ (kt)}$' % (np.nanmax(sfc_wind_pred*1.94), ),
-    #r'SFMR V$_{max}$: %.1f (kt)' % (np.nanmax(hdobs.sfmr), ),
-    'Simplified Franklin: %.1f (kt)' % (sf_frac*np.nanmax(wspd_earth*1.94), ) ))
+    'SAM Center: %.2f N, %.2f W' % (sam_lat,np.abs(sam_lon),), # currently assuming negative longitudes **********
+    'RMW: %.1f (nm)' % (sam_rmw,),
+    'Simp. Franklin: %.1f (kt)' % (simp_frank,), ))
+
+# figure out how to add simplified franklin number back in
+#    'Simplified Franklin: %.1f (kt)' % (sf_frac*np.nanmax(wspd_earth*1.94), ) ))
 
 # convert coords, first to cartesian
 if sam_fn == 'samurai_RTZ_analysis.nc':
@@ -588,7 +524,6 @@ elif sam_fn == 'samurai_XYZ_analysis.nc':
 
     # open file
     ncfile_sfc = Dataset('./nn_output/HOT_SAMURAI_sfc_analysis_'+args.STORM+'_'+analysis_time+'.nc',mode='w',format='NETCDF4') 
-    #ncfile_sfc = Dataset('./nn_output/HOT_SAMURAI_sfc_analysis_'+args.STORM+'_'+args.ANALYSISTIME+'_preliminary_v2.nc',mode='w',format='NETCDF4') 
 
     # define dimensions
     # are these two-dimensional?? (could do a simple, x/y)
@@ -624,26 +559,37 @@ elif sam_fn == 'samurai_XYZ_analysis.nc':
     nclat[:] = lat_nc # (MAYBE?!) 
     nclon[:] = lon_nc # (MAYBE?!)
     nctime[:] = (samurai_time - pd.Timestamp("1970-01-01", tz='UTC')) // pd.Timedelta('1s')
-    #nctime[:] = (pd.to_datetime(args.ANALYSISTIME, format='%Y%m%d%H%M', utc=True) - pd.Timestamp("1970-01-01", tz='UTC')) // pd.Timedelta('1s')
     ncu[:,:,:] = u_nc[np.newaxis,:,:] # check dimensions
     ncv[:,:,:] = v_nc[np.newaxis,:,:] # check dimensions
     
-    #print(ncu[:])
-    #print(u_nc)
-    #print(ncfile_sfc)
     ncfile_sfc.close()
 
 #%% main code: step 5 - generate any images
 # x,y instead of lat/lon? 
 
-cmax = 5*np.round(np.nanmax(mag_3km*1.94)/5)
-if cmax > 100:
-    cstep = 10
-else:
-    cstep = 5
+# wind radii calculations
 
-#VariableLimits = np.arange(0,cmax+cstep,cstep)
-#norm = colors.BoundaryNorm(np.append(VariableLimits, 1000), ncolors=256)
+wind_radii = [34,50,64]
+radii_vals = np.zeros((3,4)) # NE, SE, SW, NW
+
+for i in range(len(wind_radii)):
+    radii_vals[i,0] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plot < 0) | (y_plot < 0), np.nan, rd))
+    radii_vals[i,1] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plot < 0) | (y_plot > 0), np.nan, rd))
+    radii_vals[i,2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plot > 0) | (y_plot > 0), np.nan, rd))
+    radii_vals[i,3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plot > 0) | (y_plot < 0), np.nan, rd))
+
+echo_edges = np.zeros(4)
+echo_edges[0] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plot < 0) | (y_plot < 0), np.nan, rd))
+echo_edges[1] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plot < 0) | (y_plot > 0), np.nan, rd))
+echo_edges[2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plot > 0) | (y_plot > 0), np.nan, rd))
+echo_edges[3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plot > 0) | (y_plot < 0), np.nan, rd))
+
+vmax_col_labels = ['HDOBS\nVmax (kt)','SAMURAI\nVmax (kt)']
+vmax_row_labels = ['FL','SWANN']
+vmax_table = [[hdobs_fl_vmax,sam_fl_vmax],[swann_hdobs_vmax, swann_sam_vmax]]
+
+radii_col_labels = ['NE','SE','SW','NW']
+radii_row_labels = ['R34','R50','R64']
 
 colors1 = plt.cm.Blues(np.linspace(0.2, 0.8, 7,endpoint=False)+0.5/7.)
 colors2 = plt.cm.Greens(np.linspace(0.2, 0.8, 8,endpoint=False)+0.5/8.)
@@ -656,6 +602,7 @@ cs = np.vstack((colors1, colors2, colors3, colors4, colors5))
 
 bounds = np.hstack((np.arange(20,34,2),np.arange(34,50,2),np.arange(50,64,2),np.arange(64,96,4),np.arange(96,200,8)))
 norm = colors.BoundaryNorm(boundaries=bounds,ncolors=len(bounds))
+spd_ticks = [20,34,50,64,83,96,113,137]
 
 mymap = colors.ListedColormap(cs)
 
@@ -671,28 +618,51 @@ f_ax4 = fig.add_subplot(gs[2, :-1])
 f_ax5 = fig.add_subplot(gs[2, -1])
 c1 = f_ax1.contourf(x_plot/1.852, y_plot/1.852, sfc_wind_pred*1.94, levels=bounds, norm=norm, cmap=mymap, extend='max');
 c2 = f_ax2.contourf(x_plot/1.852, y_plot/1.852, mag_3km*1.94, levels=bounds, norm=norm, cmap=mymap, extend='max');
+t1 = f_ax1.contour(x_plot/1.852, y_plot/1.852, sfc_wind_pred*1.94,colors=['k','k','k'],
+                 linewidths=[0.35,0.7,1.15], levels=[83,113,137])
+t2 = f_ax2.contour(x_plot/1.852, y_plot/1.852, mag_3km*1.94,colors=['k','k','k'],
+                 linewidths=[0.35,0.7,1.15], levels=[83,113,137])
 ln2, = f_ax2.plot(x_plane/1.852,y_plane/1.852,'k')
 f_ax2.legend([ln2],['flight path'])
 f_ax2.plot(x_plane[0]/1.852,y_plane[0]/1.852,'kx') # flight start
 f_ax2.plot(x_plane[-1]/1.852,y_plane[-1]/1.852,'ko') # flight end
-#c1 = f_ax1.contourf(x_plot, y_plot, sfc_wind_pred*1.94, levels=np.arange(0,cmax,cstep), cmap='Spectral_r', extend='max')
-#c2 = f_ax2.contourf(x_plot, y_plot, mag_3km*1.94, levels=np.arange(0,cmax,cstep), cmap='Spectral_r', extend='max')
 c3 = f_ax3.contourf(x_plot/1.852, y_plot/1.852, sfc_wind_pred/mag_3km, levels=np.arange(0.75,1.05,0.05), cmap='coolwarm', extend='both')
-f_ax1.contour(x_plot/1.852, y_plot/1.852, rd/1.852, levels=np.array([swann_rmw/1.852]), colors='k', linestyles='dotted');
-f_ax1.legend([line],['RMW'])
-#f_ax2.contour(x_plot, y_plot, rd, levels=np.array([sam_rmw]), colors='k', linestyles='dotted');
+#f_ax1.contour(x_plot/1.852, y_plot/1.852, rd/1.852, levels=np.array([swann_rmw/1.852]), colors='k', linestyles='dotted');
+#f_ax1.legend([line],['RMW'])
 f_ax3.contour(x_plot/1.852, y_plot/1.852, rd/1.852, levels=np.array([swann_rmw/1.852]), colors='k', linestyles='dotted');
 f_ax3.legend([line],['RMW'])
 f_ax1.set_aspect('equal')
 f_ax2.set_aspect('equal')
 f_ax3.set_aspect('equal')
 f_ax4.plot(hdobs.dt, hdobs.wsp, 'r')
+f_ax4.plot(hdobs.dt, sfc_wind_pred_ac*1.94, color='#1E4D2B')
 f_ax4.plot(hdobs.dt.values[0], hdobs.wsp.values[0], 'kx') # flight start
 f_ax4.plot(hdobs.dt.values[-1], hdobs.wsp.values[-1], 'ko') # flight end
 #f_ax4.plot(hdobs.dt, hdobs.sfmr, 'k',hdobs.dt, hdobs.wsp, 'r')
-f_ax5.text(0.0, 0.95, textstr, transform=f_ax5.transAxes, fontsize=11,verticalalignment='top')
+f_ax5.text(-0.075, 0.99, textstr, transform=f_ax5.transAxes, fontsize=10,verticalalignment='top')
+my_table = f_ax5.table(cellText=np.round(vmax_table,decimals=1), 
+                     rowLabels=vmax_row_labels,
+                     colLabels=vmax_col_labels,
+                     bbox=[0.15,0.3,0.8,0.375])
+for (row, col), cell in my_table.get_celld().items():
+    if (row == 2):
+        cell.set_text_props(fontproperties=FontProperties(weight='bold'))
+        cell.get_text().set_color('#1E4D2B')
+
+my_table2 = f_ax5.table(cellText=np.rint(radii_vals/1.852).astype(int), # convert radii from km to nm
+                     rowLabels=radii_row_labels,
+                     colLabels=radii_col_labels,
+                     bbox=[0.15,-0.025,0.8,0.3])
+
+for (row, col), cell in my_table2.get_celld().items():
+    if (row == 0) | (col == -1):
+        continue
+    if ((radii_vals[row-1,col]/echo_edges[col]) > 0.95):
+        cell.set_text_props(fontproperties=FontProperties(style='italic',weight='ultralight'))
+        cell.get_text().set_color('red')
+
 f_ax5.set_axis_off()
-f_ax4.legend(['FL'])
+f_ax4.legend(['HDOBS FL','HDOBS SWANN'])
 #f_ax4.legend(['SFMR (kt)','FL (kt)'])
 f_ax4.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
 f_ax1.set_xlim([-85,85])
@@ -720,106 +690,17 @@ f_ax1.set_xlabel('distance from center (nm)');
 f_ax1.set_ylabel('distance from center (nm)');
 f_ax2.set_xlabel('distance from center (nm)');
 f_ax3.set_xlabel('distance from center (nm)');
-f_ax1.set_title('SFC wind speed (kt)');
-f_ax2.set_title('FL wind speed (kt)');
+f_ax1.set_title('SWANN SFC wind (kt)');
+f_ax2.set_title('SAMURAI FL wind (kt)');
 f_ax3.set_title('ratio: SFC/FL');
 f_ax4.set_ylabel('wind speed (kt)');
-cb1 = plt.colorbar(mappable=c1,cax=fig.add_subplot(gs[1,:2]), orientation='horizontal',ticks=bounds[::4])
+plt.suptitle(figtitle,y=0.915)
+cb1 = plt.colorbar(mappable=c1,cax=fig.add_subplot(gs[1,:2]), orientation='horizontal',ticks=spd_ticks)
 cb1.ax.set_title('');
+cb1.add_lines(t1)
 cb3 = plt.colorbar(mappable=c3,cax=fig.add_subplot(gs[1,2]), orientation='horizontal', ticks=[0.75, 0.85, 0.95, 1.05])
 cb3.ax.set_title('');
 fig.savefig(imDir+args.STORM+'_'+analysis_time+'_4pan.png', dpi=200, bbox_inches='tight')
 #fig.savefig(imDir+args.STORM+'_'+args.ANALYSISTIME+'_4pan_'+ml_ver+mode+'.png', dpi=200, bbox_inches='tight')
 
 
-#%% old images
-
-# convert wind speed to knots, might actually change variables later, maybe more sig digits? *******
-#fig, axs = plt.subplots(1,2, sharex=True, sharey=True, figsize=(8,4))
-#c1 = axs[0].contourf(x_plot, y_plot, sfc_wind_pred*1.94, levels=np.arange(0,105,5), cmap='Spectral_r',extend='max')
-#c1 = axs[0].contourf(x_plot, y_plot, sfc_wind_pred*1.94, levels=np.arange(0,160,10), cmap='Spectral_r')
-#c2 = axs[1].contourf(x_plot, y_plot, mag_3km*1.94, levels=np.arange(0,105,5), cmap='Spectral_r',extend='max')
-#c2 = axs[1].contourf(x_plot, y_plot, mag_3km*1.94, levels=np.arange(0,160,10), cmap='Spectral_r')
-#c1 = axs[0].contourf(x_plot, y_plot, sfc_wind_pred, levels=np.arange(0,60,2.5), cmap='Spectral_r')
-#c2 = axs[1].contourf(x_plot, y_plot, mag_3km, levels=np.arange(0,60,2.5), cmap='Spectral_r')
-#c1 = axs[0].contourf(lon_r, lat_r, surface_wind, cmap='CMRmap')
-#c2 = axs[1].contourf(lon_r, lat_r, fl_wind, cmap='CMRmap')i
-#axs[0].set_title('predicted surface wind speed')
-#axs[0].set_title('predicted surface WN0+1 wind speed')
-#axs[1].set_title('FL wind speed')
-#cb1 = plt.colorbar(c1,ax=axs[0])
-#cb1.ax.set_title('kt')
-#cb2 = plt.colorbar(c2,ax=axs[1])
-#cb2.ax.set_title('kt')
-#fig.savefig(imDir+'NN_comparison_'+args.STORM+'_'+args.ANALYSISTIME+'_preliminary_'+ml_ver+'_vnhc_premade_jonrmw.png', dpi=200, bbox_inches='tight')
-
-#fig, axs = plt.subplots(1,2, sharex=True, sharey=True, figsize=(8,4))
-#c1 = axs[0].contourf(x_plot, y_plot, sfc_wind_pred*1.94, levels=np.arange(0,105,5), cmap='Spectral_r', extend='max')
-#c1 = axs[0].contourf(x_plot, y_plot, sfc_wind_pred*1.94, levels=np.arange(0,160,10), cmap='Spectral_r')
-#c2 = axs[1].contourf(x_plot, y_plot, sfc_wind_pred/mag_3km, levels=np.arange(0.75,1.05,0.05), cmap='coolwarm', extend='both')
-#c2 = axs[1].contourf(x_plot, y_plot, sfc_wind_pred/mag_3km, levels=np.arange(0.8,1.01,0.01), cmap='PuOr_r')
-#axs[1].contour(x_plot, y_plot, sfc_wind_pred*1.94, levels=np.arange(30,155,5))
-#axs[0].set_title('predicted surface wind speed')
-#axs[1].set_title('ratio: sfc/FL')
-#cb1 = plt.colorbar(c1,ax=axs[0])
-#cb1.ax.set_title('kt')
-#cb2 = plt.colorbar(c2,ax=axs[1])
-#cb2.ax.set_title('')
-#fig.savefig(imDir+'NN_ratio_'+args.STORM+'_'+args.ANALYSISTIME+'_preliminary_'+ml_ver+'_vnhc_premade_jonrmw.png', dpi=200, bbox_inches='tight')
-
-#fig, axs = plt.subplots(1,2, sharex=True, sharey=True, figsize=(8,4))
-#c1 = axs[0].contourf(x_plot, y_plot, mag_3km_srel, levels=np.arange(0,80,5), cmap='Spectral_r')
-#c2 = axs[1].contourf(x_plot, y_plot, mag_3km,levels=np.arange(0,80,5), cmap='Spectral_r')
-#c1 = axs[0].contourf(x_plot, y_plot, mag_3km_srel, levels=np.arange(0,60,2.5), cmap='Spectral_r')
-#c2 = axs[1].contourf(x_plot, y_plot, mag_3km,levels=np.arange(0,60,2.5), cmap='Spectral_r')
-#c1 = axs[0].contourf(lon_r, lat_r, surface_wind, cmap='CMRmap')
-#c2 = axs[1].contourf(lon_r, lat_r, fl_wind, cmap='CMRmap')i
-#axs[0].set_title('3-km storm relative wind')
-#axs[1].set_title('3-km earth relative wind')
-#cb1 = plt.colorbar(c1,ax=axs[0])
-#cb1.ax.set_title(r'm s$^{-1}$')
-#cb2 = plt.colorbar(c2,ax=axs[1])
-#cb2.ax.set_title(r'm s$^{-1}$')
-#fig.savefig(imDir+'storm_motion_comparison_'+args.STORM+'_'+args.ANALYSISTIME+'_prelim_'+ml_ver+'_v2.png', dpi=200, bbox_inches='tight')
-
-#fig, axs = plt.subplots(1,2, sharex=True, sharey=True, figsize=(8,4))
-#c1 = axs[0].contourf(x_plot, y_plot, u_storm, levels=np.arange(-80,80,10), cmap='RdBu_r')
-#c2 = axs[1].contourf(x_plot, y_plot, u_earth,levels=np.arange(-80,80,10), cmap='RdBu_r')
-#axs[0].set_title('3-km storm relative u wind')
-#axs[1].set_title('3-km earth relative u wind')
-#cb1 = plt.colorbar(c1,ax=axs[0])
-#cb2 = plt.colorbar(c2,ax=axs[1])
-#fig.savefig(imDir+'u_comparison_'+args.STORM+'_'+args.ANALYSISTIME+'_preliminary_'+ml_ver+'_v2.png', dpi=200, bbox_inches='tight')
-
-#fig, axs = plt.subplots(1,2, sharex=True, sharey=True, figsize=(8,4))
-#c1 = axs[0].contourf(x_plot, y_plot, v_storm, levels=np.arange(-80,80,10), cmap='RdBu_r')
-#c2 = axs[1].contourf(x_plot, y_plot, v_earth,levels=np.arange(-80,80,10), cmap='RdBu_r')
-#axs[0].set_title('3-km storm relative v wind')
-#axs[1].set_title('3-km earth relative v wind')
-#cb1 = plt.colorbar(c1,ax=axs[0])
-#cb2 = plt.colorbar(c2,ax=axs[1])
-#fig.savefig(imDir+'v_comparison_'+args.STORM+'_'+args.ANALYSISTIME+'_preliminary_'+ml_ver+'_v2.png', dpi=200, bbox_inches='tight')
-
-#fig, axs = plt.subplots(1,2, sharex=True, sharey=True, figsize=(8,4))
-#c1 = axs[0].contourf(sfc_wind_pred, levels=np.arange(0,80,5), cmap='Spectral_r')
-#c2 = axs[1].contourf(mag_3km, levels=np.arange(0,80,5),cmap='Spectral_r')
-#c1 = axs[0].contourf(lon_r, lat_r, surface_wind, cmap='CMRmap')
-#c2 = axs[1].contourf(lon_r, lat_r, fl_wind, cmap='CMRmap')
-#cb1 = plt.colorbar(c1,ax=axs[0])
-#cb2 = plt.colorbar(c2,ax=axs[1])
-#fig.savefig(imDir+'NN_comparison_noxy.png', dpi=200, bbox_inches='tight')
-
-
-#fig, axs = plt.subplots(1,2, sharex=True, sharey=True, figsize=(8,4))
-#c1 = axs[0].contourf(x_plot, y_plot, rd)
-#c2 = axs[1].contourf(x_plot, y_plot, np.radians(theta_motionrel))
-#cb1 = plt.colorbar(c1,ax=axs[0])
-#cb2 = plt.colorbar(c2,ax=axs[1])
-#fig.savefig(imDir+'testing_'+args.STORM+'_'+args.ANALYSISTIME+'_prelim_'+ml_ver+'_v2.png', dpi=200, bbox_inches='tight')
-
-#fig, axs = plt.subplots(1,2, sharex=True, sharey=True, figsize=(8,4))
-#c1 = axs[0].contourf(x_plot, y_plot, np.reshape(r_norm,u_storm.shape,order='C'))
-#c2 = axs[1].contourf(x_plot, y_plot, np.reshape(theta_nr,u_storm.shape,order='C'))
-#cb1 = plt.colorbar(c1,ax=axs[0])
-#cb2 = plt.colorbar(c2,ax=axs[1])
-#fig.savefig(imDir+'testing2_'+args.STORM+'_'+args.ANALYSISTIME+'_prelim_'+ml_ver+'_v2.png', dpi=200, bbox_inches='tight')

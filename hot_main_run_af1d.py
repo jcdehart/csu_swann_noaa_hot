@@ -23,9 +23,11 @@ from samurai_gen_file import make_cen_file, modify_param_file
 import hot_grab_files
 import hot_calc_centers
 import center_funcs
+import hot_prep_data
 from matplotlib.ticker import AutoMinorLocator
 import matplotlib.colors as colors
 import matplotlib.dates as mdates
+from matplotlib.font_manager import FontProperties
 
 plt.rcParams.update({'mathtext.default':  'regular' })
 
@@ -243,10 +245,6 @@ th = th_r*180./np.pi
 wspd_earth = hdobs.wsp.values/1.94 # CONVERTING TO M/S NEEDED FOR ALEX'S MODEL ******
 hdobs_rmw = rd[np.unravel_index(np.nanargmax(wspd_earth),np.shape(wspd_earth))]
 
-## RMW
-# normalize wrt RMW and ravel data
-r_norm = rd.ravel(order='C')/hdobs_rmw
-
 # compare RMW values ( ***edit for coverage in samurai analysis*** )
 print('\n')
 print('tcvitals RMW: '+str(storm_rmw))
@@ -254,36 +252,9 @@ print('tcvitals intens: '+str(storm_intens))
 print('hdobs FL RMW: '+str(hdobs_rmw))
 print('hdobs FL intens: '+str(np.nanmax(wspd_earth)))
 
-## THETA
-# convert samurai theta from math degrees (i.e., 0 = right) to met degrees (i.e., 0 = north)
-theta_met = 90 + (360 - th)
-theta_met[theta_met > 360] = theta_met[theta_met > 360] - 360
-
-# rotate theta with respect to storm motion and convert to radians
-theta_motionrel = theta_met - storm_dir
-theta_motionrel[theta_motionrel < 0] = theta_motionrel[theta_motionrel < 0] + 360
-theta_nr = np.radians(theta_motionrel.ravel(order='C'))
-
-## FLIGHT LEVEL WIND
-# grab flight level wind (i.e., 3 km) and reshape
-FL_wind = wspd_earth.ravel(order='C')
-
-## REMAINING
-# set up 2-D arrays of repeating scalar values for flight level (make automatic), best track vmax (knots), storm motion magnitude (m/s)
-alt = np.zeros_like(FL_wind)
-alt[:] = alt_plane*1000 # m
-
-BT_Vmax = np.zeros_like(FL_wind)
-BT_Vmax[:] = storm_intens*1.94 # convert to knots
-SM_mag = np.zeros_like(FL_wind)
-SM_mag[:] = storm_motion
-RMW_arr = np.zeros_like(FL_wind)
-RMW_arr[:] = hdobs_rmw
-
-# normalized r (r/rmw), theta (wrt motion) x2, wind, altitude, vmax, storm motion magnitude
-X_ratio = np.asarray([r_norm, theta_nr, theta_nr, FL_wind, alt, BT_Vmax, SM_mag, RMW_arr])  #double up on angle for sin and cosine
-X_ratio[1,:] = np.sin(X_ratio[1,:]) # converted to radians above
-X_ratio[2,:] = np.cos(X_ratio[2,:])
+# prepare variables for NN model - SAMURAI wind field
+# expected units of input vars (for this function, not model): km, km, deg (math), deg (math), kts, m/s, m/s, km
+X_ratio, r_norm = hot_prep_data.process_nn_vars(rd, hdobs_rmw, th, storm_dir, storm_intens, storm_motion, wspd_earth, alt_plane, af)
 
 # standardize data
 x_data = model_utils.Standardize_Vars(X_ratio.T)
@@ -327,17 +298,29 @@ if alt_plane == 1.5:
 elif alt_plane == 3.0:
     sf_frac = 0.9
 
+hdobs_fl_vmax = np.nanmax(hdobs.wsp)
+swann_hdobs_vmax = np.nanmax(sfc_wind_pred*1.94)
+simp_frank = sf_frac*hdobs_fl_vmax
+
+figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_sm.mission.unique()[0] + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
+
 textstr = '\n'.join((
-    storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_sm.mission.unique()[0],
-    leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M'),
     'Inputs: HDOBS',
-    '\n',
-    r'HDOB FL V$_{max}$: %.1f (kt)' % (np.nanmax(hdobs.wsp), ),
-    '\n',
-    'SWANN RMW: %.1f (nm)' % (swann_rmw, ),
-    r'$\bf{SWANN\ V_{max}:\ %.1f\ (kt)}$' % (np.nanmax(sfc_wind_pred*1.94), ),
-    r'SFMR V$_{max}$: %.1f (kt)' % (np.nanmax(hdobs.sfmr), ),
-    'Simplified Franklin: %.1f (kt)' % (sf_frac*np.nanmax(wspd_earth*1.94), ) ))
+    'SAM Center: %.2f N, %.2f W' % (lat_wc,np.abs(lon_wc),), # assuming western hemisphere
+    'RMW: %.1f (nm)' % (swann_rmw,),
+    'Simp. Franklin: %.1f (kt)' % (simp_frank,), ))
+
+#textstr = '\n'.join((
+#    storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_sm.mission.unique()[0],
+#    leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M'),
+#    'Inputs: HDOBS',
+#    '\n',
+#    r'HDOB FL V$_{max}$: %.1f (kt)' % (np.nanmax(hdobs.wsp), ),
+#    '\n',
+#    'SWANN RMW: %.1f (nm)' % (swann_rmw, ),
+#    r'$\bf{SWANN\ V_{max}:\ %.1f\ (kt)}$' % (np.nanmax(sfc_wind_pred*1.94), ),
+#    r'SFMR V$_{max}$: %.1f (kt)' % (np.nanmax(hdobs.sfmr), ),
+#    'Simplified Franklin: %.1f (kt)' % (sf_frac*np.nanmax(wspd_earth*1.94), ) ))
 
 # convert coords, first to cartesian
 #if sam_fn == 'samurai_RTZ_analysis.nc':
@@ -357,6 +340,33 @@ print(radii)
 print(x_plot)
 print(y_plot)
 
+# wind radii calculations
+
+wind_radii = [34,50,64]
+radii_vals = np.zeros((3,4)) # NE, SE, SW, NW
+
+for i in range(len(wind_radii)):
+    radii_vals[i,0] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plane < 0) | (y_plane < 0), np.nan, rd))
+    radii_vals[i,1] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plane < 0) | (y_plane > 0), np.nan, rd))
+    radii_vals[i,2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plane > 0) | (y_plane > 0), np.nan, rd))
+    radii_vals[i,3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plane > 0) | (y_plane < 0), np.nan, rd))
+
+radii_vals[np.isnan(radii_vals)] = np.ma.masked
+radii_vals = np.rint(radii_vals).astype(int)
+
+echo_edges = np.zeros(4)
+echo_edges[0] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane < 0) | (y_plane < 0), np.nan, rd))
+echo_edges[1] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane < 0) | (y_plane > 0), np.nan, rd))
+echo_edges[2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane > 0) | (y_plane > 0), np.nan, rd))
+echo_edges[3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane > 0) | (y_plane < 0), np.nan, rd))
+
+vmax_col_labels = ['HDOBS\nVmax (kt)']
+vmax_row_labels = ['FL','SWANN']
+vmax_table = [[hdobs_fl_vmax],[swann_hdobs_vmax]]
+
+radii_col_labels = ['NE','SE','SW','NW']
+radii_row_labels = ['R34','R50','R64']
+
 fig = plt.figure(figsize=(8.5,3.5))
 #fig = plt.figure(constrained_layout=True,figsize=(8,6))
 gs = fig.add_gridspec(1,3)
@@ -374,11 +384,32 @@ axins.plot(0, 0,'r*')
 #axins.contour(x_plot, y_plot, radii, levels=np.array([swann_rmw]), colors='r', linestyles='dotted');
 #axins.contour(x_plot/1.852, y_plot/1.852, rd/1.852, levels=np.array([swann_rmw/1.852]), colors='r', linestyles='dotted');
 
-f_ax5.text(0.0, 0.95, textstr, transform=f_ax5.transAxes, fontsize=11,verticalalignment='top')
+f_ax5.text(-0.075, 0.99, textstr, transform=f_ax5.transAxes, fontsize=10,verticalalignment='top')
+my_table = f_ax5.table(cellText=np.round(vmax_table,decimals=1),
+                     rowLabels=vmax_row_labels,
+                     colLabels=vmax_col_labels,
+                     bbox=[0.15,0.3,0.4,0.375])
+for (row, col), cell in my_table.get_celld().items():
+    if (row == 2):
+        cell.set_text_props(fontproperties=FontProperties(weight='bold'))
+        cell.get_text().set_color('#1E4D2B')
+
+my_table2 = f_ax5.table(cellText=np.rint(radii_vals/1.852).astype(int), # convert radii from km to nm
+                     rowLabels=radii_row_labels,
+                     colLabels=radii_col_labels,
+                     bbox=[0.15,-0.025,0.8,0.3])
+
+for (row, col), cell in my_table2.get_celld().items():
+    if (row == 0) | (col == -1):
+        continue
+    if ((radii_vals[row-1,col]/echo_edges[col]) > 0.95):
+        cell.set_text_props(fontproperties=FontProperties(style='italic',weight='ultralight'))
+        cell.get_text().set_color('red')
 f_ax5.set_axis_off()
 f_ax4.legend(['SFMR','FL','SWANN'])
 f_ax4.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
 f_ax4.grid(True)
 f_ax4.set_ylabel('wind speed (kt)')
+plt.suptitle(figtitle,y=0.94)
 fig.savefig(imDir+args.STORM+'_'+samurai_time.strftime(format='%Y%m%d%H%M')+'_af_2pan.png', dpi=200, bbox_inches='tight')
 
