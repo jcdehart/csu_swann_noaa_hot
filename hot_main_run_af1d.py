@@ -280,11 +280,50 @@ print('predicted max sfc wind: '+str(np.nanmax(sfc_wind_pred)))
 # grab RMW
 swann_rmw = rd[np.unravel_index(np.nanargmax(sfc_wind_pred),np.shape(sfc_wind_pred))]
 
-# convert wind speed to u and v, assuming inflow angle is 22.6, from zhang and uhlhorn 2012
-u_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.cos(th) - sfc_wind_pred*np.sin(np.radians(90-22.6))*np.sin(th)
-v_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.sin(th) + sfc_wind_pred*np.sin(np.radians(90-22.6))*np.cos(th)
+# convert wind speed to u and v, assuming inflow angle is 22.6, from zhang and uhlhorn 2012, use th_r in radians
+u_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.cos(th_r) - sfc_wind_pred*np.sin(np.radians(90-22.6))*np.sin(th_r)
+v_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.sin(th_r) + sfc_wind_pred*np.sin(np.radians(90-22.6))*np.cos(th_r)
 
 #%% main code: step 4 - save output data as NetCDF (adapted from MetPy documentation)
+
+# open file
+ncfile_sfc = Dataset('./nn_output/HOT_HDOBS_sfc_analysis_'+args.STORM+'_'+samurai_time.strftime('%Y%m%d%H%M')+'.nc',mode='w',format='NETCDF4') 
+
+# define dimensions
+time_dim = ncfile_sfc.createDimension('time', len(hdobs.dt)) # unlimited axis (can be appended to)
+    
+# set up metadata
+ncfile_sfc.title='CSU Predicted Surface Wind'
+ncfile_sfc.subtitle="Generated using CSU SWANN"
+
+# set up variables
+nclat = ncfile_sfc.createVariable('latitude', np.float32, ('time'))
+nclat.units = 'degrees_north'
+nclat.long_name = 'latitude'
+nclon = ncfile_sfc.createVariable('longitude', np.float32, ('time'))
+nclon.units = 'degrees_east'
+nclon.long_name = 'longitude'
+nctime = ncfile_sfc.createVariable('time', np.float64, ('time'))
+nctime.units = 'seconds since 1970-01-01'
+nctime.long_name = 'time'
+# Define a 3D variable to hold the data
+ncu = ncfile_sfc.createVariable('u_wind',np.float64,('time')) # note: unlimited dimension is leftmost
+ncu.units = 'm s-1' 
+ncu.standard_name = 'eastward_wind' # this is a CF standard name
+ncu.long_name = 'U component of the predicted surface wind'
+ncv = ncfile_sfc.createVariable('v_wind',np.float64,('time')) # note: unlimited dimension is leftmost
+ncv.units = 'm s-1' 
+ncv.standard_name = 'northward_wind' # this is a CF standard name
+ncv.long_name = 'V component of the predicted surface wind'
+
+# save data to arrays 
+nclat[:] = hdobs.lat.values
+nclon[:] = hdobs.lon.values
+nctime[:] = (hdobs.dt  - pd.Timestamp("1970-01-01", tz="UTC")) // pd.Timedelta('1s')
+ncu[:] = u_nc
+ncv[:] = v_nc
+    
+ncfile_sfc.close()
 
 
 # FIGURE OUT WHERE TO PUT TEXT FILE ********************
@@ -306,7 +345,7 @@ figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_s
 
 textstr = '\n'.join((
     'Inputs: HDOBS',
-    'SAM Center: %.2f N, %.2f W' % (lat_wc,np.abs(lon_wc),), # assuming western hemisphere
+    'W-C Center: %.2f N, %.2f W' % (lat_wc,np.abs(lon_wc),), # assuming western hemisphere
     'RMW: %.1f (nm)' % (swann_rmw,),
     'Simp. Franklin: %.1f (kt)' % (simp_frank,), ))
 
@@ -322,23 +361,15 @@ textstr = '\n'.join((
 #    r'SFMR V$_{max}$: %.1f (kt)' % (np.nanmax(hdobs.sfmr), ),
 #    'Simplified Franklin: %.1f (kt)' % (sf_frac*np.nanmax(wspd_earth*1.94), ) ))
 
-# convert coords, first to cartesian
-#if sam_fn == 'samurai_RTZ_analysis.nc':
-#    x_plot = rd*np.cos(np.radians(th))
-#    y_plot = rd*np.sin(np.radians(th))
-    # lon_nc, lat_nc = latlon(sam_lon, sam_lat, x_plot, x_plot) # Michael's code ####### CONFIRM LAT LON with best center ########
-    # geod = Geod(ellps='WGS84')
-    # lon_r, lat_r, _ = geod.fwd(storm_lon, storm_lat, theta_met, rd*1000) # check where zero is expected for azimuth
-
 #%% main code: step 5 - generate any images
 # x,y instead of lat/lon? 
 
 x_plot, y_plot = np.meshgrid(np.arange(np.nanmin(x_plane),np.nanmax(x_plane)), 
     np.arange(np.nanmin(y_plane),np.nanmax(y_plane)))
 radii = np.sqrt(x_plot**2 + y_plot**2)
-print(radii)
-print(x_plot)
-print(y_plot)
+#print(radii)
+#print(x_plot)
+#print(y_plot)
 
 # wind radii calculations
 

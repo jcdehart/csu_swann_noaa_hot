@@ -290,7 +290,7 @@ sam_lon_tmp = np.interp(xc_avg, ncfile_cart['x'][:].data, ncfile_cart['longitude
 sam_lat_tmp = np.interp(yc_avg, ncfile_cart['y'][:].data, ncfile_cart['latitude'][:].data)
 
 # check for distance from W-C center *** fix later???
-if (np.abs(sam_lon_tmp - lon_wc) > 0.3) | (np.abs(sam_lat_tmp - lat_wc) > 0.3):
+if (np.abs(sam_lon_tmp - lon_wc) > 0.4) | (np.abs(sam_lat_tmp - lat_wc) > 0.4):
     print('objective center too far from W-C, defaulting to W-C center')
     sam_lon = lon_wc
     sam_lat = lat_wc
@@ -533,7 +533,7 @@ elif sam_fn == 'samurai_XYZ_analysis.nc':
     
     # set up metadata
     ncfile_sfc.title='CSU Predicted Surface Wind'
-    ncfile_sfc.subtitle="Generated using CSU Neural Net"
+    ncfile_sfc.subtitle="Generated using CSU SWANN"
 
     # set up variables
     nclat = ncfile_sfc.createVariable('latitude', np.float32, ('latitude'))
