@@ -22,7 +22,7 @@ current_url = base_url.replace('XXXXXXXX',datetime).replace('HH',hour)
 current_fn = base_fn.replace('HH',hour)
 
 # check if file exists already or download file
-final_path = '/bell-scratch/jcdehart/hot/ingest_dir/center_data/tcvitals/'+datetime+'/'
+final_path = '/bell-scratch/jcdehart/hot_operational/retrospective_testing/ingest_dir/center_data/tcvitals/'+datetime+'/'
 os.system('mkdir -p '+final_path)
 
 if os.path.isfile(final_path + current_fn):
@@ -53,7 +53,7 @@ else:
         prev_fn = base_fn.replace('HH',hour_prev)
         
         # set up prev directory
-        prev_path = '/bell-scratch/jcdehart/hot/ingest_dir/center_data/tcvitals/'+datetime_prev+'/'
+        prev_path = '/bell-scratch/jcdehart/hot_operational/retrospective_testing/ingest_dir/center_data/tcvitals/'+datetime_prev+'/'
         os.system('mkdir -p '+prev_path)
     
         if os.path.isfile(prev_path + prev_fn):

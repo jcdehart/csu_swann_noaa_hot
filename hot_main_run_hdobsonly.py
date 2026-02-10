@@ -74,6 +74,7 @@ parser.add_argument("STORM", help="storm name (all caps)", type=str)
 #parser.add_argument("ANALYSISTIME", help="samurai analysis datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("STARTTIME", help="samurai start datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("ENDTIME", help="samurai end datetime (YYYYMMDDHHMM)", type=str)
+parser.add_argument("PLANE", help="plane: NOAA (N) or AF (A)", type=str)
 parser.add_argument("--CENFN", default="gfs.tXXz.syndata.tcvitals.tm00", help="TC Vitals filename", type=str)
 parser.add_argument("--CENPATH", default="./ingest_dir/center_data", help="TC Vitals directory", type=str)
 parser.add_argument("--CENTYPE", default="tcvitals", help="center type (tcvitals or fplus)", type=str)
@@ -81,25 +82,23 @@ args = parser.parse_args()
 
 # ***** change into an argument, or change to start time + duration, model will be settled in future, deal with af only later
 #dur = 45
-cyl = False
-af = True
+if args.PLANE == 'A':
+    af = True
+elif args.PLANE == 'N':
+    af = False
+else:
+    print('SPECIFY PLANE!!')
+
 #alt_plane = 1.5
 #alt_plane = 3.0
 ml_ver = 'FRED'
 
-if cyl == True:
-    mode = '_cyl'
-else:
-    mode = ''
-
 #%% set up dirs
 # local testing
-inDir = '/bell-scratch/jcdehart/hot/'
+inDir = '/bell-scratch/jcdehart/hot_operational/retrospective_testing/'
 data_dir = inDir+'ingest_dir/'
 ml_dir_base = inDir+'ML_models/'
-#ml_dir_base = inDir+'ML_models/stable_model/'
-sam_dir_base = inDir+'samurai_parent/'
-sam_ingest_dir = inDir+'samurai_parent/samurai_input/'
+hdobs_ingest_dir = inDir+'hdobs_parent/hdobs_input/'
 output_dir = inDir+'nn_testing/'
 imDir = inDir+'images/'
 
@@ -112,6 +111,7 @@ json_fn = 'HS24_SCL_2DNN_model_v2.json'
 leg_start = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True)
 leg_end = pd.to_datetime(args.ENDTIME,format='%Y%m%d%H%M',utc=True)
 samurai_time = leg_start + ((leg_end-leg_start)/2).round('min')
+analysis_time = samurai_time.strftime('%Y%m%d%H%M')
 print('\n')
 print('leg start time: '+leg_start.strftime('%Y%m%d%H%M'))
 print('leg end time: '+leg_end.strftime('%Y%m%d%H%M'))
@@ -123,6 +123,7 @@ storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motion, cent
 storm_lat_2, storm_lon_2, storm_intens_2, storm_dir_2, storm_motion_2, df_2, u_motion_2, v_motion_2, storm_dir_rot_2 = hot_calc_centers.center_adeck(args, samurai_time)
 
 print('\n')
+print('########')
 print('center stats from tcvitals and adeck:')
 print([storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motion, u_motion_1, v_motion_1, storm_dir_rot])
 print([storm_lat_2, storm_lon_2, storm_intens_2, np.nan, storm_dir_2, storm_motion_2, u_motion_2, v_motion_2, storm_dir_rot_2])
@@ -130,31 +131,32 @@ print([storm_lat_2, storm_lon_2, storm_intens_2, np.nan, storm_dir_2, storm_moti
 
 # more center finding from files will go here... flight plus *********
 
-
-# calc W-C center (hdobs)
-# ******* I think code adds buffer on to beginning and end - potentially change *******
-
-# move all necessary files to ./samurai_input
-# **** for now specifying whether AF only or not ***** UPDATE IN FUTURE
-
 # first remove any existing files
-os.system('rm -rf '+sam_ingest_dir+'/*.list')
-os.system('rm -rf '+sam_ingest_dir+'/*.hdob')
-os.system('rm -rf '+sam_ingest_dir+'/*.gz')
+os.system('rm -rf '+hdobs_ingest_dir+'/*.list')
+os.system('rm -rf '+hdobs_ingest_dir+'/*.hdob')
+os.system('rm -rf '+hdobs_ingest_dir+'/*.gz')
+
+print('\n')
+print('########')
+print('moving data over and reading HDOBS files')
 
 hdobs_init = hot_grab_files.create_dataframe(data_dir+'hdobs',leg_start,leg_end)
+#print(hdobs_init)
 hdobs_sm = hot_grab_files.shrink_df(hdobs_init, leg_start, leg_end, storm_name_2, af)
-hot_grab_files.copy_files(hdobs_sm,sam_ingest_dir)
+hot_grab_files.copy_files(hdobs_sm,hdobs_ingest_dir)
 
 print(hdobs_sm.mission.unique())
 if len(hdobs_sm.mission.unique()) > 1:
     print('warning: more than one flight ID in hdobs files!!')
 
 # rename hdob .list files to .hdob for SAMURAI ingestion
-os.system('for i in '+sam_ingest_dir+'/*.txt; do mv "$i" "${i%.txt}.hdob"; done')
+os.system('for i in '+hdobs_ingest_dir+'/*.txt; do mv "$i" "${i%.txt}.hdob"; done')
 
 # read in hdobs data
-hdobs = hot_calc_centers.read_hdobs('KNHC', storm_name_2)
+if af == True:
+    hdobs = hot_calc_centers.read_hdobs('KNHC', storm_name_2,'HDOBS', leg_start, leg_end)
+elif af == False:
+    hdobs = hot_calc_centers.read_hdobs('KWBC', storm_name_2,'HDOBS', leg_start, leg_end)
 
 print('avg altitude: '+str(hdobs.hgt.mean()))
 print('min altitude: '+str(hdobs.hgt.min()))
@@ -176,7 +178,6 @@ lon_wc = hdobs.lon.iloc[dt_wc[0]]
 lat_wc = hdobs.lat.iloc[dt_wc[0]]
 
 print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc))
-#print('W-C center lat: '+str(lat_wc[0])+', center lon: '+str(lon_wc[0]))
 print(dt_wc)
 
 #print('averaging all 3 centers')
@@ -185,47 +186,24 @@ print(dt_wc)
 wgt = np.array([1, 1, 5])
 #storm_lon = np.average(np.array([lon_wc,storm_lon_1,storm_lon_2]),weights=wgt)
 #storm_lat = np.average(np.array([lat_wc,storm_lat_1,storm_lat_2]),weights=wgt)
-#storm_lon = np.nanmean(np.array([lon_wc,storm_lon_1,storm_lon_2]))
-#storm_lat = np.nanmean(np.array([lat_wc,storm_lat_1,storm_lat_2]))
 u_motion = np.nanmean(np.array([u_motion_1,u_motion_2]))
 v_motion = np.nanmean(np.array([v_motion_1,v_motion_2]))
 #print([storm_lat, storm_lon])
 print([u_motion, v_motion])
 
 # grab plane altitude manually
-med_hgt = (500*(hdobs.hgt/500).round()).median()
-
-if med_hgt == 1500.:
-    alt_plane = 1.5
-    print('plane hgt = '+str(alt_plane))
-elif med_hgt == 3000.:
-    alt_plane = 3.
-    print('plane hgt = '+str(alt_plane))
-else:
-    hgt_options = np.array([1.5, 3.0])
-    alt_plane = hgt_options[np.argmin(np.abs(med_hgt - hgt_options))]
-    print('plane hgt not within 500 m of options')
-    print('using plane hgt = '+str(alt_plane))
-    print('actual med plane hgt = '+str(med_hgt))
-
-
-#%% main code: step 2 - run samurai
-
-
-# deployed on JHT/NHC
-# inDir = os.getcwd()+'/'
-#ml_dir = inDir+'./ML_models/'
-#sam_dir = inDir+'./samurai_output/'
-#output_dir = inDir+'./nn_output/'
-
-# use tcvitals file to create background file
-# hot_gen_background_file.py
+alt_plane = hdobs.hgt # in meters
+print('using height time series for HDOBs data')
 
 # convert hdobs to xy
 x_plane,y_plane = xy(hdobs.lat.values,hdobs.lon.values,lat_wc,lon_wc)
 print('Using W-C center')
 
 #%% main code: step 3 - neural net
+
+print('\n')
+print('########')
+print('run SWANN on HDOBS')
 
 # load json and create model
 json_file = open(ml_dir+json_fn, 'r')
@@ -253,7 +231,7 @@ print('hdobs FL RMW: '+str(hdobs_rmw))
 print('hdobs FL intens: '+str(np.nanmax(wspd_earth)))
 
 # prepare variables for NN model - SAMURAI wind field
-# expected units of input vars (for this function, not model): km, km, deg (math), deg (math), kts, m/s, m/s, km
+# expected units of input vars (for this function, not model): km, km, deg (math), deg (math), kts, m/s, m/s, km (m for HDOBs)
 X_ratio, r_norm = hot_prep_data.process_nn_vars(rd, hdobs_rmw, th, storm_dir, storm_intens, storm_motion, wspd_earth, alt_plane, af)
 
 # standardize data
@@ -285,6 +263,10 @@ u_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.cos(th_r) - sfc_wind_pred*np
 v_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.sin(th_r) + sfc_wind_pred*np.sin(np.radians(90-22.6))*np.cos(th_r)
 
 #%% main code: step 4 - save output data as NetCDF (adapted from MetPy documentation)
+
+print('\n')
+print('########')
+print('save txt file, netcdf, image')
 
 # open file
 ncfile_sfc = Dataset('./nn_output/HOT_HDOBS_sfc_analysis_'+args.STORM+'_'+samurai_time.strftime('%Y%m%d%H%M')+'.nc',mode='w',format='NETCDF4') 
@@ -325,20 +307,25 @@ ncv[:] = v_nc
     
 ncfile_sfc.close()
 
-
-# FIGURE OUT WHERE TO PUT TEXT FILE ********************
-#f = open(sam_dir+args.STORM+'_'+args.ANALYSISTIME+'_data.txt','w')
-#lines = ['samurai FL RMW: '+str(hdobs_rmw)+'\n', 'samurai FL intens: '+str(np.nanmax(wspd_earth))+'\n', 'predicted max sfc wind: '+str(np.nanmax(sfc_wind_pred))]
-#f.writelines(lines)
-#f.close()
-
-if alt_plane == 1.5:
-    sf_frac = 0.8
-elif alt_plane == 3.0:
-    sf_frac = 0.9
-
 hdobs_fl_vmax = np.nanmax(hdobs.wsp)
 swann_hdobs_vmax = np.nanmax(sfc_wind_pred*1.94)
+
+# determine simplified franklin reduction based on altitude of peak HDOBs wind
+med_hgt = 500*(alt_plane[np.nanargmax(hdobs.wsp)]/500).round()
+
+if med_hgt == 1500.:
+    sf_frac = 0.8
+elif med_hgt == 3000.:
+    sf_frac = 0.9
+else:
+    hgt_options = np.array([1500., 3000.])
+    alt_tmp = hgt_options[np.argmin(np.abs(med_hgt - hgt_options))]
+    
+    if alt_tmp == 1500.:
+        sf_frac = 0.8
+    elif alt_tmp == 3000.:
+        sf_frac = 0.9
+
 simp_frank = sf_frac*hdobs_fl_vmax
 
 figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_sm.mission.unique()[0] + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
@@ -346,8 +333,14 @@ figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_s
 textstr = '\n'.join((
     'Inputs: HDOBS',
     'W-C Center: %.2f N, %.2f W' % (lat_wc,np.abs(lon_wc),), # assuming western hemisphere
-    'RMW: %.1f (nm)' % (swann_rmw,),
+    'RMW: %.1f (nm)' % (swann_rmw/1.852,),
     'Simp. Franklin: %.1f (kt)' % (simp_frank,), ))
+
+# save text file
+f = open(inDir+'txt_output/'+args.STORM+'_'+analysis_time+'_data_hdobsonly.txt','w')
+lines = ['Inputs: HDOBS\n', 'W-C Center: '+str(lat_wc)+', '+str(lon_wc)+'\n', 'HDOBS Vmax (kts): '+str(hdobs_fl_vmax)+'\n', 'SWANN Vmax (kts): '+str(swann_hdobs_vmax), 'SWANN RMW (nm): '+str(swann_rmw/1.852), 'Simplified Franklin (kts): '+str(simp_frank)]
+f.writelines(lines)
+f.close()
 
 #textstr = '\n'.join((
 #    storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_sm.mission.unique()[0],
@@ -367,9 +360,6 @@ textstr = '\n'.join((
 x_plot, y_plot = np.meshgrid(np.arange(np.nanmin(x_plane),np.nanmax(x_plane)), 
     np.arange(np.nanmin(y_plane),np.nanmax(y_plane)))
 radii = np.sqrt(x_plot**2 + y_plot**2)
-#print(radii)
-#print(x_plot)
-#print(y_plot)
 
 # wind radii calculations
 
@@ -382,8 +372,11 @@ for i in range(len(wind_radii)):
     radii_vals[i,2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plane > 0) | (y_plane > 0), np.nan, rd))
     radii_vals[i,3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plane > 0) | (y_plane < 0), np.nan, rd))
 
-radii_vals[np.isnan(radii_vals)] = np.ma.masked
-radii_vals = np.rint(radii_vals).astype(int)
+# deal with NaN issue
+radii_vals_nm = np.rint(radii_vals/1.852) # convert radii from km to nm
+radii_vals_nm[np.isnan(radii_vals_nm)] = -999
+radii_vals_str = radii_vals_nm.astype(int).astype(str)
+radii_vals_str[np.isin(radii_vals_str,'-999')] = 'N/A'
 
 echo_edges = np.zeros(4)
 echo_edges[0] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane < 0) | (y_plane < 0), np.nan, rd))
@@ -403,15 +396,16 @@ fig = plt.figure(figsize=(8.5,3.5))
 gs = fig.add_gridspec(1,3)
 f_ax4 = fig.add_subplot(gs[0, :-1])
 f_ax5 = fig.add_subplot(gs[0, -1])
-f_ax4.plot(hdobs.dt, hdobs.sfmr, 'k',hdobs.dt, hdobs.wsp, 'r',hdobs.dt, sfc_wind_pred*1.94, 'green')
-f_ax4.plot(hdobs.dt.values[0], hdobs.wsp.values[0], 'rx') # flight start
-f_ax4.plot(hdobs.dt.values[-1], hdobs.wsp.values[-1], 'ro') # flight end
+f_ax4.plot(hdobs.dt, hdobs.sfmr, 'k',hdobs.dt, hdobs.wsp, 'r')
+f_ax4.plot(hdobs.dt, sfc_wind_pred*1.94, color='#1E4D2B')
+f_ax4.plot(hdobs.dt.values[0], hdobs.wsp.values[0], 'kx') # flight start
+f_ax4.plot(hdobs.dt.values[-1], hdobs.wsp.values[-1], 'ko') # flight end
 axins = f_ax4.inset_axes(
-    [0.03, 0.6, 0.27, 0.37], xticklabels=[], yticklabels=[])
+    [0.02, 0.78, 0.15, 0.2], xticklabels=[], yticklabels=[])
 axins.plot(x_plane, y_plane,'r')
-axins.plot(x_plane[0], y_plane[0],'rx')
-axins.plot(x_plane[-1], y_plane[-1],'ro')
-axins.plot(0, 0,'r*')
+axins.plot(x_plane[0], y_plane[0],'kx')
+axins.plot(x_plane[-1], y_plane[-1],'ko')
+axins.plot(0, 0,'k*')
 #axins.contour(x_plot, y_plot, radii, levels=np.array([swann_rmw]), colors='r', linestyles='dotted');
 #axins.contour(x_plot/1.852, y_plot/1.852, rd/1.852, levels=np.array([swann_rmw/1.852]), colors='r', linestyles='dotted');
 
@@ -425,7 +419,8 @@ for (row, col), cell in my_table.get_celld().items():
         cell.set_text_props(fontproperties=FontProperties(weight='bold'))
         cell.get_text().set_color('#1E4D2B')
 
-my_table2 = f_ax5.table(cellText=np.rint(radii_vals/1.852).astype(int), # convert radii from km to nm
+my_table2 = f_ax5.table(cellText=radii_vals_str, # convert radii from km to nm
+#my_table2 = f_ax5.table(cellText=np.rint(radii_vals/1.852).astype(int), # convert radii from km to nm
                      rowLabels=radii_row_labels,
                      colLabels=radii_col_labels,
                      bbox=[0.15,-0.025,0.8,0.3])
@@ -437,7 +432,7 @@ for (row, col), cell in my_table2.get_celld().items():
         cell.set_text_props(fontproperties=FontProperties(style='italic',weight='ultralight'))
         cell.get_text().set_color('red')
 f_ax5.set_axis_off()
-f_ax4.legend(['SFMR','FL','SWANN'])
+f_ax4.legend(['SFMR','FL','SWANN'], loc='lower right')
 f_ax4.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
 f_ax4.grid(True)
 f_ax4.set_ylabel('wind speed (kt)')

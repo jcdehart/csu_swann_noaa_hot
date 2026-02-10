@@ -53,7 +53,7 @@ def center_fplus(args, samurai_time):
 
 # def center_simplex? chris's code???? *********
 
-def read_hdobs(plane, storm):
+def read_hdobs(plane, storm, analysis_type, start_time, end_time):
 
     # assumes files have already been moved into samurai_parent/samurai_input dir
 
@@ -61,16 +61,52 @@ def read_hdobs(plane, storm):
     import pandas as pd
     import glob
     import os
+    import subprocess
+
+    if analysis_type == 'HDOBS':
+        inDir = './hdobs_parent/hdobs_input'
+    elif analysis_type == 'SAMURAI':
+        inDir = './samurai_parent/samurai_input'
 
     # sort files by name, read in files using pandas, add YYYYMMDD from file name to time, concat files together
-    files = sorted(glob.glob('./samurai_parent/samurai_input/*'+plane+'*.hdob'))
-    dfs = [pd.read_csv(f,sep=' ', skip_blank_lines=True, skiprows=[0,1,2,3,24,25,26], header=None, dtype=str) for f in files]
+    all_files = sorted(glob.glob(inDir+'/*'+plane+'*.hdob'))
+
+    def read_file(f):
+        try:
+            return pd.read_csv(f,sep=' ', skip_blank_lines=True, skiprows=[0,1,2,3,24,25,26], header=None, dtype=str)
+        except:
+            print('file has issue: '+f)
+            os.remove(f)
+
+    dfs_init = [read_file(f) for f in all_files]
+    dfs = [x for x in dfs_init if x is not None] # remove instances with None
     good = []
+    planes = []
+    bad_plane = None
+    bad_plane_files = []
+    files = sorted(glob.glob(inDir+'/*'+plane+'*.hdob')) # set in case some were deleted
+
     for i in range(len(dfs)): 
+        #print(i)
+        #print(files[i][-17:-9])
+        #print(dfs[i][0])
+
+        if np.isin(files[i],bad_plane_files):
+            print('file is from landing plane '+files[i])
+            planes.append(bad_plane)
+            continue
+
+
         dfs[i][0] = files[i][-17:-9]+dfs[i][0] # add YYYYMMDD to existing time strings
 
         # altitude check to see if transit flight mixed in
         # STILL NEED TO FIX MULTIPLE PLANES IN STORM AT ONCE *******
+        
+        f = open(files[i])
+        lines = f.readlines()
+        plane = lines[3][0:5]
+        planes.append(plane)
+
         hdob_alt = dfs[i][4].astype('float')
         if (np.nanmean(hdob_alt) > 5000):
             print(np.nanmean(hdob_alt))
@@ -78,6 +114,39 @@ def read_hdobs(plane, storm):
             print('deleting file '+files[i])
             os.system('rm -rf '+files[i])
             continue
+
+        # altitude check for landing plane (altitude < 1000)
+        if ((hdob_alt < 1000).any()):
+
+            hdob_dt = pd.to_datetime(dfs[i][0],format='%Y%m%d%H%M%S',utc=True)
+            print(hdob_dt)
+
+            if (hdob_dt.iloc[0] > end_time) | (hdob_dt.iloc[-1] < start_time):
+                print('hdob file out of order - not within time range')
+                print('deleting file '+files[i])
+                os.system('rm -rf '+files[i])
+                continue
+
+            print(dfs[i])
+
+            print('plane altitude < 1000, '+plane+' likely landing, will delete files from plane')
+            bad_plane = plane
+
+            # use grep to find files with plane
+            landing_files = subprocess.check_output('grep -l '+plane+' '+inDir+'/*.hdob',shell=True).decode().strip().split('\n')
+            print(landing_files)
+            print(len(landing_files))
+            if len(landing_files) > 0:
+
+                for lf in range(len(landing_files)):
+                    print('deleting file '+landing_files[lf])
+                    os.system('rm -rf '+landing_files[lf])
+                    bad_plane_files.append(landing_files[lf])
+
+                continue
+
+            else:
+                print('files probably already deleted')
         
         # make sure file all correspond to same storm
         if (os.system('grep '+storm+' '+files[i]) != 256):
@@ -89,8 +158,19 @@ def read_hdobs(plane, storm):
             print('storm name not found in HDOBS')
             # maybe delete files?
 
-    dfs_good = [dfs[i] for i in good]
+    # remove any remaining files from descending aircraft
+    # should rename vars lol
+    if bad_plane is not None:
+        planes_good = [planes[i] for i in good]
+        only_instorm_flights = [i for i, x in enumerate(planes_good) if x != bad_plane]
+        good_final = [good[i] for i in only_instorm_flights]
+    else:
+        good_final = good
+
+    # pare down dataframs
+    dfs_good = [dfs[i] for i in good_final]
     full_ts = pd.concat(dfs_good,ignore_index=True)
+    #print(full_ts[8].values)
 
     # create new dataframe with actual values we want, starting with datetime
     hdobs_all = pd.DataFrame(data={'dt':pd.to_datetime(full_ts[0],format='%Y%m%d%H%M%S',utc=True)})
@@ -110,7 +190,7 @@ def read_hdobs(plane, storm):
     hdobs_all.loc[full_ts[2].str.strip().str[-1:] == 'W','lon'] = hdobs_all.loc[full_ts[2].str.strip().str[-1:] == 'W','lon']*-1
 
     # grab pressure, convert to hPa (assuming all pressure below 1000 for now)
-    hdobs_all['p'] = full_ts[3].astype('float')/10.
+    hdobs_all['p'] = full_ts[3].str.replace('////','999').astype('float')/10. ### might need to check for errors in the future *****
 
     # grab height, keep in m
     hdobs_all['hgt'] = full_ts[4].astype('float')
@@ -267,6 +347,20 @@ def center_adeck(args, samurai_time):
     for line in file: 
         if all(word in line for word in searchwds):
             adeck.append(line)
+
+    if len(adeck) == 0:
+        print('no data at center time, trying 6 hours before')
+        centime_secondguess = centime - pd.Timedelta(hours=6)
+        print(centime_secondguess.strftime('%Y%m%d%H'))
+        
+        searchwds2 = ['OFCL', centime_secondguess.strftime('%Y%m%d%H'), '34,']
+        file = open(adeck_path+adeck_fn)
+        for line in file: 
+            if all(word in line for word in searchwds2):
+                print(line)
+                adeck.append(line)
+
+        print(adeck)
 
     adeck2 = [x.split(',') for x in adeck]
     cols = ['BASIN', 'CY', 'YYYYMMDDHH', 'TECHNUM/MIN', 'TECH', 'TAU', 'LatN/S', 'LonE/W', 'VMAX', 'MSLP', 'TY', 'RAD', 'WINDCODE', 'RAD1', 'RAD2', 'RAD3', 'RAD4', 'POUTER', 'ROUTER', 'RMW', 'GUSTS', 'EYE', 'SUBREGION', 'MAXSEAS', 'INITIALS', 'DIR', 'SPEED', 'STORMNAME', 'DEPTH', 'SEAS', 'SEASCODE', 'SEAS1', 'SEAS2', 'SEAS3', 'SEAS4', 'USERDEFINED']

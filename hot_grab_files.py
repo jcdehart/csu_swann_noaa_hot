@@ -33,6 +33,11 @@ def shrink_df(df, start_time, end_time, storm_name, af):
     #mask = (df['datetime'] >= (start_time - pd.Timedelta(5,unit='m'))) & (df['datetime'] <= (end_time + pd.Timedelta(5,unit='m')))
     mask = (df['datetime'] >= (start_time - pd.Timedelta(10,unit='m'))) & (df['datetime'] <= (end_time + pd.Timedelta(10,unit='m'))) # with 10-min buffer, removing for now
     df_sm = df.loc[mask].reset_index(drop=True)
+    #print(df_sm)
+    #print(df['datetime'])
+    #print(df[df.path.str.contains('KNHC')])
+    print(start_time)
+    print(end_time)
         
     if df_sm.path.str.contains('hdobs').iloc[0]:
         # basically get identifying info about each hdob file

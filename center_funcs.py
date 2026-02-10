@@ -47,6 +47,14 @@ def find_peaks(wspd_f, wdir_f, dval_f, u_tc, v_tc):
     # all local minima in the Willoughby function
     peaks, properties = signal.find_peaks(-willfunc, prominence=(800, None))
 
+    # if no peak identified, look for minimum of smoothed willfunc
+    if len(peaks) == 0:
+
+        from scipy.signal import savgol_filter
+        smoothed = savgol_filter(willfunc, 5, 2, mode='nearest')
+        peaks = np.array([np.nanargmin(smoothed)])
+        print('no promininent peaks identified. using smoothed mininmum.')
+
     return peaks, properties, willfunc, wdir_rel
 
 
@@ -56,11 +64,11 @@ def refine_peaks_nhc(peaks, approaches, dt_f, latsub, lonsub, date_bt, lat_bt, l
     
     print('Refining centers based on best track')
     for cpo in range(0, approaches):
-        latsub = lat_f[peaks[cpo]-50:peaks[cpo]+51]
-        lonsub = lon_f[peaks[cpo]-50:peaks[cpo]+51]
+        latsub = lat_f[peaks[cpo]-10:peaks[cpo]+11]
+        lonsub = lon_f[peaks[cpo]-10:peaks[cpo]+11]
         
         # Interpolate best track data locally to do sanity check
-        dtsub = dt_f[peaks[cpo]-50:peaks[cpo]+51] # apply to other variables
+        dtsub = dt_f[peaks[cpo]-10:peaks[cpo]+11] # apply to other variables
         dtsub_ts = (dtsub - date_bt[0]).dt.total_seconds() # just convert to seconds from first best track time
         date_bt_ts = (date_bt - date_bt[0]).dt.total_seconds()
         f = interpolate.interp1d(date_bt_ts, lat_bt)
@@ -139,20 +147,20 @@ def peaks_wc(peaks_refined, approaches, lat_f, lon_f, wdir_rel, dt_f):
         i = 0
         
         # deal with peaks that are within 50 indices of either end of time series
-        if (peaks_refined[cpo]-50 < 0):
+        if (peaks_refined[cpo]-10 < 0):
             st = 0
         else:
-            st = peaks_refined[cpo]-50
+            st = peaks_refined[cpo]-10
 
-        if (peaks_refined[cpo]+51 >= len(lat_f)):
+        if (peaks_refined[cpo]+11 >= len(lat_f)):
             en = -1
         else:
-            en = peaks_refined[cpo]+51
+            en = peaks_refined[cpo]+11
 
         latsub = lat_f[st:en]
         lonsub = lon_f[st:en]
         wdirsub = wdir_rel[st:en]
-	
+
 	# Date information
         dtsub = dt_f[st:en].reset_index()
 	
@@ -186,7 +194,6 @@ def peaks_wc(peaks_refined, approaches, lat_f, lon_f, wdir_rel, dt_f):
         #print(b0)
         #print(b1)
         #print(m00)
-        #print(dt_f)
         imin = np.argmin(errorl)
         #print(imin)
         #print(errorl)
@@ -327,7 +334,7 @@ def run_wc_code(file_in):
     peaks, properties, willfunc, wdir_rel = find_peaks(wspd_f, wdir_f, dval_f, u_tc, v_tc)
 
     # Loop through potential centers and get rid of junk ones
-    window = 50
+    window = 10
     approaches = len(peaks)
 
     # refine based on NHC best track/realtime
