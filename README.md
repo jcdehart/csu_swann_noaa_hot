@@ -1,6 +1,6 @@
 # CSU SWANN Workflow
 
-This repository holds the scripts that run the CSU Surface Winds from Aircraft with a Neural Network (SWANN) model. The model is described in [DesRosiers et al. (2025)](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2025JH000584). 
+This repository holds the scripts that run the CSU Surface Winds from Aircraft with a Neural Network (SWANN) model. The model is described in [DesRosiers et al. (2025)](https://doi.org/10.1029/2025JH000584). 
 
 For NOAA aircraft with TDR data, the basic command structure is as follows:
 python hot_main_run_samurai.py stormID (e.g., AL05) leg_start (YYYYMMDDHHMM) leg_end (YYYYMMDDHHMM)
