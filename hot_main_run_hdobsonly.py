@@ -338,7 +338,7 @@ textstr = '\n'.join((
 
 # save text file
 f = open(inDir+'txt_output/'+args.STORM+'_'+analysis_time+'_data_hdobsonly.txt','w')
-lines = ['Inputs: HDOBS\n', 'W-C Center: '+str(lat_wc)+', '+str(lon_wc)+'\n', 'HDOBS Vmax (kts): '+str(hdobs_fl_vmax)+'\n', 'SWANN Vmax (kts): '+str(swann_hdobs_vmax), 'SWANN RMW (nm): '+str(swann_rmw/1.852), 'Simplified Franklin (kts): '+str(simp_frank)]
+lines = ['Inputs: HDOBS\n', 'W-C Center: '+str(lat_wc)+', '+str(lon_wc)+'\n', 'HDOBS Vmax (kts): '+str(hdobs_fl_vmax)+'\n', 'SWANN Vmax (kts): '+str(swann_hdobs_vmax)+' ', 'SWANN RMW (nm): '+str(swann_rmw/1.852)+' ', 'Simplified Franklin (kts): '+str(simp_frank)]
 f.writelines(lines)
 f.close()
 
@@ -406,24 +406,17 @@ axins.plot(x_plane, y_plane,'r')
 axins.plot(x_plane[0], y_plane[0],'kx')
 axins.plot(x_plane[-1], y_plane[-1],'ko')
 axins.plot(0, 0,'k*')
-#axins.contour(x_plot, y_plot, radii, levels=np.array([swann_rmw]), colors='r', linestyles='dotted');
-#axins.contour(x_plot/1.852, y_plot/1.852, rd/1.852, levels=np.array([swann_rmw/1.852]), colors='r', linestyles='dotted');
 
 f_ax5.text(-0.075, 0.99, textstr, transform=f_ax5.transAxes, fontsize=10,verticalalignment='top')
-my_table = f_ax5.table(cellText=np.round(vmax_table,decimals=1),
-                     rowLabels=vmax_row_labels,
-                     colLabels=vmax_col_labels,
-                     bbox=[0.15,0.3,0.4,0.375])
+my_table = f_ax5.table(cellText=np.round(vmax_table,decimals=1), rowLabels=vmax_row_labels,
+                     colLabels=vmax_col_labels, bbox=[0.15,0.3,0.4,0.375])
 for (row, col), cell in my_table.get_celld().items():
     if (row == 2):
         cell.set_text_props(fontproperties=FontProperties(weight='bold'))
         cell.get_text().set_color('#1E4D2B')
 
-my_table2 = f_ax5.table(cellText=radii_vals_str, # convert radii from km to nm
-#my_table2 = f_ax5.table(cellText=np.rint(radii_vals/1.852).astype(int), # convert radii from km to nm
-                     rowLabels=radii_row_labels,
-                     colLabels=radii_col_labels,
-                     bbox=[0.15,-0.025,0.8,0.3])
+my_table2 = f_ax5.table(cellText=radii_vals_str, rowLabels=radii_row_labels,
+                     colLabels=radii_col_labels, bbox=[0.15,-0.025,0.8,0.3])
 
 for (row, col), cell in my_table2.get_celld().items():
     if (row == 0) | (col == -1):

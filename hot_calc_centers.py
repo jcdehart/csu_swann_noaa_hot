@@ -51,51 +51,89 @@ def center_fplus(args, samurai_time):
     return center_time, fplus_cenlat, fplus_cenlon
 
 
+def read_vdm(file):
+    
+    import pandas
+    import re
+    
+    ## open file and read relevant lines
+    # *** add other lines later ***
+    f = open(file, "r")
+    vdm = f.readlines()
+    vdm_time = vdm[4]
+    vdm_loc = vdm[5]
+    vdm_header = vdm[3]
+    vdm_flight = vdm[24]
+    
+    ## get flight, storm names
+    
+    header = vdm_header.split()
+    flight = vdm_flight.split()
+    storm_code = header[3]
+    flight_code = flight[2]
+    storm_name = flight[3]
+    
+    ## extract center time
+    
+    ddhhmmss = re.sub('[^0-9]','', vdm_time)
+    
+    # grab yeah, month info from filename
+    filedt = file[-16:-4]
+    vdm_file_time = pd.to_datetime(filedt, format='%Y%m%d%H%M', utc=True)
+    
+    # create datetime object
+    # check if day is the same for midnight clock shift
+    if vdm_file_time.day == int(ddhhmmss[:2]):
+        vdm_center_time = pd.to_datetime(filedt[:6] + ddhhmmss[:6], format='%Y%m%d%H%M', utc=True)
+        
+    elif (vdm_file_time - pd.Timedelta(1, "D")).day == int(ddhhmmss[:2]):
+        newday = (vdm_file_time - pd.Timedelta(1, "D")).strftime(format='%Y%m%d')
+        vdm_center_time = pd.to_datetime(newday[:6] + ddhhmmss[:6], format='%Y%m%d%H%M', utc=True)
+        
+    else:
+        print('some other problem - debug')
+        
+    ## extract lat lon
+    
+    lat = float(vdm_loc[3:8])
+    lon = float(vdm_loc[15:21])
+    if vdm_loc[13:14] == 'S':
+        lat = lat*-1
+    if vdm_loc[26:27] == 'W':
+        lon = lon*-1
+    
+    ## *** can add additional code later!! ***
+    # other vars to consider: dropsonde sfc pressure/winds, inbound/outbound max winds/rmw/time, 
+        
+    
+    return (vdm_center_time, lat, lon, storm_code, storm_name, flight_code)
+
+
 # def center_simplex? chris's code???? *********
 
-def read_hdobs(plane, storm, analysis_type, start_time, end_time):
+def read_hdob_file(f):
+    try:
+        return pd.read_csv(f,sep=' ', skip_blank_lines=True, skiprows=[0,1,2,3,24,25,26], header=None, dtype=str)
+    except:
+        print('file has issue: '+f)
+        os.remove(f)
 
-    # assumes files have already been moved into samurai_parent/samurai_input dir
 
-    import numpy as np
-    import pandas as pd
-    import glob
-    import os
-    import subprocess
+def identify_hdob_files(all_files, files):
 
-    if analysis_type == 'HDOBS':
-        inDir = './hdobs_parent/hdobs_input'
-    elif analysis_type == 'SAMURAI':
-        inDir = './samurai_parent/samurai_input'
-
-    # sort files by name, read in files using pandas, add YYYYMMDD from file name to time, concat files together
-    all_files = sorted(glob.glob(inDir+'/*'+plane+'*.hdob'))
-
-    def read_file(f):
-        try:
-            return pd.read_csv(f,sep=' ', skip_blank_lines=True, skiprows=[0,1,2,3,24,25,26], header=None, dtype=str)
-        except:
-            print('file has issue: '+f)
-            os.remove(f)
-
-    dfs_init = [read_file(f) for f in all_files]
+    dfs_init = [read_hdob_file(f) for f in all_files]
     dfs = [x for x in dfs_init if x is not None] # remove instances with None
     good = []
     planes = []
     bad_plane = None
     bad_plane_files = []
-    files = sorted(glob.glob(inDir+'/*'+plane+'*.hdob')) # set in case some were deleted
 
     for i in range(len(dfs)): 
-        #print(i)
-        #print(files[i][-17:-9])
-        #print(dfs[i][0])
 
         if np.isin(files[i],bad_plane_files):
             print('file is from landing plane '+files[i])
             planes.append(bad_plane)
             continue
-
 
         dfs[i][0] = files[i][-17:-9]+dfs[i][0] # add YYYYMMDD to existing time strings
 
@@ -166,11 +204,34 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
         good_final = [good[i] for i in only_instorm_flights]
     else:
         good_final = good
+        
+    return(good_final)
 
-    # pare down dataframs
+
+def read_hdobs(plane, storm, analysis_type, start_time, end_time):
+
+    # assumes files have already been moved into samurai_parent/samurai_input dir
+
+    import numpy as np
+    import pandas as pd
+    import glob
+    import os
+    import subprocess
+
+    if analysis_type == 'HDOBS':
+        inDir = './hdobs_parent/hdobs_input'
+    elif analysis_type == 'SAMURAI':
+        inDir = './samurai_parent/samurai_input'
+
+    # sort files by name, read in files using pandas, add YYYYMMDD from file name to time, concat files together
+    all_files = sorted(glob.glob(inDir+'/*'+plane+'*.hdob'))
+    files = sorted(glob.glob(inDir+'/*'+plane+'*.hdob')) # set in case some were deleted
+
+    good_final = identify_hdob_files(all_files, files)
+
+    # pare down dataframes
     dfs_good = [dfs[i] for i in good_final]
     full_ts = pd.concat(dfs_good,ignore_index=True)
-    #print(full_ts[8].values)
 
     # create new dataframe with actual values we want, starting with datetime
     hdobs_all = pd.DataFrame(data={'dt':pd.to_datetime(full_ts[0],format='%Y%m%d%H%M%S',utc=True)})
