@@ -14,9 +14,7 @@ import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 import argparse
 import os
-import glob
-#from pyproj import Geod
-from tensorflow.keras.models import Sequential, model_from_json
+from tensorflow.keras.models import model_from_json
 import model_utils
 #import hot_cen_file
 from samurai_gen_file import make_cen_file, modify_param_file
@@ -24,8 +22,7 @@ import hot_grab_files
 import hot_calc_centers
 import center_funcs
 import hot_prep_data
-from matplotlib.ticker import AutoMinorLocator
-import matplotlib.colors as colors
+import save_files
 import matplotlib.dates as mdates
 from matplotlib.font_manager import FontProperties
 
@@ -268,44 +265,7 @@ print('\n')
 print('########')
 print('save txt file, netcdf, image')
 
-# open file
-ncfile_sfc = Dataset('./nn_output/HOT_HDOBS_sfc_analysis_'+args.STORM+'_'+samurai_time.strftime('%Y%m%d%H%M')+'.nc',mode='w',format='NETCDF4') 
-
-# define dimensions
-time_dim = ncfile_sfc.createDimension('time', len(hdobs.dt)) # unlimited axis (can be appended to)
-    
-# set up metadata
-ncfile_sfc.title='CSU Predicted Surface Wind'
-ncfile_sfc.subtitle="Generated using CSU SWANN"
-
-# set up variables
-nclat = ncfile_sfc.createVariable('latitude', np.float32, ('time'))
-nclat.units = 'degrees_north'
-nclat.long_name = 'latitude'
-nclon = ncfile_sfc.createVariable('longitude', np.float32, ('time'))
-nclon.units = 'degrees_east'
-nclon.long_name = 'longitude'
-nctime = ncfile_sfc.createVariable('time', np.float64, ('time'))
-nctime.units = 'seconds since 1970-01-01'
-nctime.long_name = 'time'
-# Define a 3D variable to hold the data
-ncu = ncfile_sfc.createVariable('u_wind',np.float64,('time')) # note: unlimited dimension is leftmost
-ncu.units = 'm s-1' 
-ncu.standard_name = 'eastward_wind' # this is a CF standard name
-ncu.long_name = 'U component of the predicted surface wind'
-ncv = ncfile_sfc.createVariable('v_wind',np.float64,('time')) # note: unlimited dimension is leftmost
-ncv.units = 'm s-1' 
-ncv.standard_name = 'northward_wind' # this is a CF standard name
-ncv.long_name = 'V component of the predicted surface wind'
-
-# save data to arrays 
-nclat[:] = hdobs.lat.values
-nclon[:] = hdobs.lon.values
-nctime[:] = (hdobs.dt  - pd.Timestamp("1970-01-01", tz="UTC")) // pd.Timedelta('1s')
-ncu[:] = u_nc
-ncv[:] = v_nc
-    
-ncfile_sfc.close()
+save_files.save_1d_netcdf(hdobs, u_nc, v_nc, samurai_time, args)
 
 hdobs_fl_vmax = np.nanmax(hdobs.wsp)
 swann_hdobs_vmax = np.nanmax(sfc_wind_pred*1.94)
@@ -337,22 +297,7 @@ textstr = '\n'.join((
     'Simp. Franklin: %.1f (kt)' % (simp_frank,), ))
 
 # save text file
-f = open(inDir+'txt_output/'+args.STORM+'_'+analysis_time+'_data_hdobsonly.txt','w')
-lines = ['Inputs: HDOBS\n', 'W-C Center: '+str(lat_wc)+', '+str(lon_wc)+'\n', 'HDOBS Vmax (kts): '+str(hdobs_fl_vmax)+'\n', 'SWANN Vmax (kts): '+str(swann_hdobs_vmax)+' ', 'SWANN RMW (nm): '+str(swann_rmw/1.852)+' ', 'Simplified Franklin (kts): '+str(simp_frank)]
-f.writelines(lines)
-f.close()
-
-#textstr = '\n'.join((
-#    storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_sm.mission.unique()[0],
-#    leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M'),
-#    'Inputs: HDOBS',
-#    '\n',
-#    r'HDOB FL V$_{max}$: %.1f (kt)' % (np.nanmax(hdobs.wsp), ),
-#    '\n',
-#    'SWANN RMW: %.1f (nm)' % (swann_rmw, ),
-#    r'$\bf{SWANN\ V_{max}:\ %.1f\ (kt)}$' % (np.nanmax(sfc_wind_pred*1.94), ),
-#    r'SFMR V$_{max}$: %.1f (kt)' % (np.nanmax(hdobs.sfmr), ),
-#    'Simplified Franklin: %.1f (kt)' % (sf_frac*np.nanmax(wspd_earth*1.94), ) ))
+save_files.save_txt(lat_wc, lon_wc, hdobs_fl_vmax, swann_hdobs_vmax, swann_rmw, simp_frank, inDir, args, analysis_time, 'HDOBS')
 
 #%% main code: step 5 - generate any images
 # x,y instead of lat/lon? 
@@ -384,51 +329,7 @@ echo_edges[1] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane < 0) | (y_
 echo_edges[2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane > 0) | (y_plane > 0), np.nan, rd))
 echo_edges[3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane > 0) | (y_plane < 0), np.nan, rd))
 
-vmax_col_labels = ['HDOBS\nVmax (kt)']
-vmax_row_labels = ['FL','SWANN']
 vmax_table = [[hdobs_fl_vmax],[swann_hdobs_vmax]]
 
-radii_col_labels = ['NE','SE','SW','NW']
-radii_row_labels = ['R34','R50','R64']
-
-fig = plt.figure(figsize=(8.5,3.5))
-#fig = plt.figure(constrained_layout=True,figsize=(8,6))
-gs = fig.add_gridspec(1,3)
-f_ax4 = fig.add_subplot(gs[0, :-1])
-f_ax5 = fig.add_subplot(gs[0, -1])
-f_ax4.plot(hdobs.dt, hdobs.sfmr, 'k',hdobs.dt, hdobs.wsp, 'r')
-f_ax4.plot(hdobs.dt, sfc_wind_pred*1.94, color='#1E4D2B')
-f_ax4.plot(hdobs.dt.values[0], hdobs.wsp.values[0], 'kx') # flight start
-f_ax4.plot(hdobs.dt.values[-1], hdobs.wsp.values[-1], 'ko') # flight end
-axins = f_ax4.inset_axes(
-    [0.02, 0.78, 0.15, 0.2], xticklabels=[], yticklabels=[])
-axins.plot(x_plane, y_plane,'r')
-axins.plot(x_plane[0], y_plane[0],'kx')
-axins.plot(x_plane[-1], y_plane[-1],'ko')
-axins.plot(0, 0,'k*')
-
-f_ax5.text(-0.075, 0.99, textstr, transform=f_ax5.transAxes, fontsize=10,verticalalignment='top')
-my_table = f_ax5.table(cellText=np.round(vmax_table,decimals=1), rowLabels=vmax_row_labels,
-                     colLabels=vmax_col_labels, bbox=[0.15,0.3,0.4,0.375])
-for (row, col), cell in my_table.get_celld().items():
-    if (row == 2):
-        cell.set_text_props(fontproperties=FontProperties(weight='bold'))
-        cell.get_text().set_color('#1E4D2B')
-
-my_table2 = f_ax5.table(cellText=radii_vals_str, rowLabels=radii_row_labels,
-                     colLabels=radii_col_labels, bbox=[0.15,-0.025,0.8,0.3])
-
-for (row, col), cell in my_table2.get_celld().items():
-    if (row == 0) | (col == -1):
-        continue
-    if ((radii_vals[row-1,col]/echo_edges[col]) > 0.95):
-        cell.set_text_props(fontproperties=FontProperties(style='italic',weight='ultralight'))
-        cell.get_text().set_color('red')
-f_ax5.set_axis_off()
-f_ax4.legend(['SFMR','FL','SWANN'], loc='lower right')
-f_ax4.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
-f_ax4.grid(True)
-f_ax4.set_ylabel('wind speed (kt)')
-plt.suptitle(figtitle,y=0.94)
-fig.savefig(imDir+args.STORM+'_'+samurai_time.strftime(format='%Y%m%d%H%M')+'_af_2pan.png', dpi=200, bbox_inches='tight')
-
+save_files.plot_image_2pan(x_plane, y_plane, sfc_wind_pred, hdobs, radii_vals_str, radii_vals, echo_edges, 
+                           textstr, vmax_table, figtitle, args, imDir, samurai_time)
