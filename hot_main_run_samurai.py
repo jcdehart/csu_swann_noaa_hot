@@ -10,7 +10,6 @@ Created on Fri Jul 21 13:22:00 2023
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 import argparse
 import os
@@ -18,53 +17,12 @@ from tensorflow.keras.models import model_from_json
 import model_utils
 #import hot_cen_file
 from samurai_gen_file import make_cen_file, modify_param_file
+from geo_conversion import latlon, xy
 import hot_grab_files
 import hot_calc_centers
 import center_funcs
 import hot_prep_data
 import save_files
-from matplotlib.ticker import AutoMinorLocator
-import matplotlib.colors as colors
-import matplotlib.dates as mdates
-from matplotlib.lines import Line2D
-from matplotlib.font_manager import FontProperties
-
-
-plt.rcParams.update({'mathtext.default':  'regular' })
-
-def latlon(cenlon, cenlat, dom_x, dom_y):
-    latrad = np.radians(cenlat)
-
-    # do math
-    fac_lat = 111.13209 - 0.56605 * np.cos(2.0 * latrad) + 0.00012 * np.cos(4.0 * latrad) - 0.000002 * np.cos(6.0 * latrad)
-    fac_lon = 111.41513 * np.cos(latrad) - 0.09455 * np.cos(3.0 * latrad) + 0.00012 * np.cos(5.0 * latrad)
-    dom_lon = cenlon + (dom_x)/fac_lon # distance in km
-    dom_lat = cenlat + (dom_y)/fac_lat
-
-    return(dom_lon, dom_lat)
-
-
-def xy(lat, lon, lat0, lon0):
-    # Approximate radius of earth in km
-    R = 6373.0
-    lat_plane = np.radians(lat)
-    lon_plane = np.radians(lon)
-    lat_cen = np.radians(lat0)
-    lon_cen = np.radians(lon0)
-    #dlon = lon_cen - lon_plane
-    #dlat = lat_cen - lat_plane
-    dlon = lon_plane - lon_cen
-    dlat = lat_plane - lat_cen
-    #a = np.sin(dlat / 2)**2 + np.cos(lat_plane) * np.cos(lat_cen) * np.sin(dlon / 2)**2
-    a = np.sin(dlat / 2)**2 + np.cos(lat_cen) * np.cos(lat_plane) * np.sin(dlon / 2)**2
-    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
-    distance = R * c
-    #bearing = np.arctan2(np.sin(lon_cen-lon_plane)*np.cos(lat_cen), np.cos(lat_plane)*np.sin(lat_cen)-np.sin(lat_plane)*np.cos(lat_cen)*np.cos(lon_cen-lon_plane))
-    bearing = np.arctan2(np.sin(lon_plane-lon_cen)*np.cos(lat_plane), np.cos(lat_cen)*np.sin(lat_plane)-np.sin(lat_cen)*np.cos(lat_plane)*np.cos(lon_plane-lon_cen))
-    #bearing is in north-facing coords...
-    x = distance*np.cos(-1*(bearing-(np.pi/2)))
-    y = distance*np.sin(-1*(bearing-(np.pi/2)))
-    return(x,y)
 
 #%% main code: step 1 - make center file from tcvitals of flight+ file (hot_calc_centers)
 
@@ -79,12 +37,10 @@ parser.add_argument("--CENTYPE", default="tcvitals", help="center type (tcvitals
 args = parser.parse_args()
 
 af = False
-#alt_plane = 1.5
-#alt_plane = 3.0
 ml_ver = 'FRED'
 
 #%% set up dirs
-inDir = '/bell-scratch/jcdehart/hot_operational/retrospective_testing/'
+inDir = '/bell-scratch/jcdehart/hot_operational/csu_swann_noaa_hot/'
 data_dir = inDir+'ingest_dir/'
 ml_dir_base = inDir+'ML_models/'
 sam_dir_base = inDir+'samurai_parent/'
@@ -432,12 +388,14 @@ textstr = '\n'.join((
     'RMW: %.1f (nm)' % (swann_rmw/1.852,),
     'Simp. Franklin: %.1f (kt)' % (simp_frank,), ))
 
+# save output text file
 save_files.save_txt(sam_lat, sam_lon, sam_fl_vmax, swann_sam_vmax, sam_rmw, simp_frank, inDir, args, analysis_time, 'SAM')
 
 # convert coords, first to cartesian
 x_plot = X
 y_plot = Y
 
+# save netcdf file
 save_files.save_2d_netcdf(lat_nc, lon_nc, u_nc, v_nc, samurai_time, analysis_time, args)
 
 #%% main code: step 5 - generate any images
@@ -465,8 +423,8 @@ echo_edges[1] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plot < 0) | (y_p
 echo_edges[2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plot > 0) | (y_plot > 0), np.nan, rd))
 echo_edges[3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plot > 0) | (y_plot < 0), np.nan, rd))
 
-
 vmax_table = [[hdobs_fl_vmax,sam_fl_vmax],[swann_hdobs_vmax, swann_sam_vmax]]
 
+# save figure
 save_files.plot_image_4pan(x_plot, y_plot, rd, x_plane, y_plane, sfc_wind_pred, mag_3km, sfc_wind_pred_ac, hdobs, swann_rmw,
                            radii_vals_str, radii_vals, echo_edges, textstr, vmax_table, figtitle, args, imDir, analysis_time)

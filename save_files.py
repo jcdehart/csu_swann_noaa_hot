@@ -108,6 +108,7 @@ def plot_image_2pan(x_plane, y_plane, sfc_wind_pred, hdobs,
     import matplotlib.dates as mdates
     from matplotlib.font_manager import FontProperties
     import numpy as np
+    plt.rcParams.update({'mathtext.default':  'regular' })
 
     vmax_col_labels = ['HDOBS\nVmax (kt)']
     vmax_row_labels = ['FL','SWANN']
@@ -166,6 +167,7 @@ def plot_image_4pan(x_plot, y_plot, rd, x_plane, y_plane, sfc_wind_pred, mag_3km
     from matplotlib.lines import Line2D
     from matplotlib.font_manager import FontProperties
     import numpy as np
+    plt.rcParams.update({'mathtext.default':  'regular' })
 
     vmax_col_labels = ['HDOBS\nVmax (kt)','SAMURAI\nVmax (kt)']
     vmax_row_labels = ['FL','SWANN']
