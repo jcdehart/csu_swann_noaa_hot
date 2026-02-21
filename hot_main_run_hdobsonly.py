@@ -41,6 +41,8 @@ elif args.PLANE == 'N':
 else:
     print('SPECIFY PLANE!!')
 
+print(af)
+
 ml_ver = 'FRED'
 
 #%% set up dirs
