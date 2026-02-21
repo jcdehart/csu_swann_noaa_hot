@@ -51,9 +51,9 @@ def center_fplus(args, samurai_time):
     return center_time, fplus_cenlat, fplus_cenlon
 
 
-def read_vdm(file):
+def read_vdm(file, mode):
     
-    import pandas
+    import pandas as pd
     import re
     
     ## open file and read relevant lines
@@ -105,13 +105,24 @@ def read_vdm(file):
     ## *** can add additional code later!! ***
     # other vars to consider: dropsonde sfc pressure/winds, inbound/outbound max winds/rmw/time, 
         
-    
-    return (vdm_center_time, lat, lon, storm_code, storm_name, flight_code)
+    if mode == 'trigger':
+        leg_start = vdm_center_time - pd.Timedelta(45,unit='m')
+        leg_end = vdm_center_time + pd.Timedelta(45,unit='m')
+        
+        print(storm_code[:4])
+        print(leg_start.strftime('%Y%m%d%H%M'))
+        print(leg_end.strftime('%Y%m%d%H%M'))
+    elif mode == 'full':
+        return (vdm_center_time, lat, lon, storm_code, storm_name, flight_code)
 
 
 # def center_simplex? chris's code???? *********
 
 def read_hdob_file(f):
+    
+    import os
+    import pandas as pd
+    
     try:
         return pd.read_csv(f,sep=' ', skip_blank_lines=True, skiprows=[0,1,2,3,24,25,26], header=None, dtype=str)
     except:
@@ -119,7 +130,12 @@ def read_hdob_file(f):
         os.remove(f)
 
 
-def identify_hdob_files(all_files, files):
+def identify_hdob_files(all_files, files, storm, start_time, end_time, inDir):
+
+    import numpy as np
+    import pandas as pd
+    import os
+    import subprocess
 
     dfs_init = [read_hdob_file(f) for f in all_files]
     dfs = [x for x in dfs_init if x is not None] # remove instances with None
@@ -205,7 +221,7 @@ def identify_hdob_files(all_files, files):
     else:
         good_final = good
         
-    return(good_final)
+    return(dfs, good_final)
 
 
 def read_hdobs(plane, storm, analysis_type, start_time, end_time):
@@ -215,8 +231,6 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
     import numpy as np
     import pandas as pd
     import glob
-    import os
-    import subprocess
 
     if analysis_type == 'HDOBS':
         inDir = './hdobs_parent/hdobs_input'
@@ -227,7 +241,7 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
     all_files = sorted(glob.glob(inDir+'/*'+plane+'*.hdob'))
     files = sorted(glob.glob(inDir+'/*'+plane+'*.hdob')) # set in case some were deleted
 
-    good_final = identify_hdob_files(all_files, files)
+    dfs, good_final = identify_hdob_files(all_files, files, storm, start_time, end_time, inDir)
 
     # pare down dataframes
     dfs_good = [dfs[i] for i in good_final]

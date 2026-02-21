@@ -1,15 +1,17 @@
-# manipulate variables for use in neural net
 
-# input units below
-# radii: km
-# rmw: km
-# theta: degrees (math reference frame where 0 is to the right)
-# storm_dir: degrees (met reference frame, where 0 is north)
-# storm_intens: kts
-# storm_motion magnitude: m/s
-# flight_wind: m/s
 
 def process_nn_vars(radii, rmw, theta, storm_dir, storm_intens, storm_motion, flight_wind, alt_plane, af):
+
+    # manipulate variables for use in neural net
+
+    # input units below 
+    # radii: km
+    # rmw: km
+    # theta: degrees (math reference frame where 0 is to the right)
+    # storm_dir: degrees (met reference frame, where 0 is north)
+    # storm_intens: kts
+    # storm_motion magnitude: m/s
+    # flight_wind: m/s  
 
     import numpy as np
 

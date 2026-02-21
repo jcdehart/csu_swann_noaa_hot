@@ -242,6 +242,7 @@ else:
 
 simp_frank = sf_frac*hdobs_fl_vmax
 
+# set up info for figure
 figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_sm.mission.unique()[0] + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
 
 textstr = '\n'.join((

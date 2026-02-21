@@ -15,7 +15,6 @@ import argparse
 import os
 from tensorflow.keras.models import model_from_json
 import model_utils
-#import hot_cen_file
 from samurai_gen_file import make_cen_file, modify_param_file
 from geo_conversion import latlon, xy
 import hot_grab_files
