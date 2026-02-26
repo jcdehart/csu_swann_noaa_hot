@@ -27,7 +27,7 @@ def create_dataframe(inDir, start_time, end_time):
     return df_orig
 
 
-def shrink_df(df, start_time, end_time, storm_name, mission_code, af):
+def shrink_df(df, start_time, end_time, storm_name, af, mission_code=None):
 
     # reducing to a 1-min buffer for now
     #mask = (df['datetime'] >= (start_time - pd.Timedelta(5,unit='m'))) & (df['datetime'] <= (end_time + pd.Timedelta(5,unit='m')))

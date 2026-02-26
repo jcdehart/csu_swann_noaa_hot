@@ -104,7 +104,10 @@ def read_vdm(file, mode):
     
     ## *** can add additional code later!! ***
     # other vars to consider: dropsonde sfc pressure/winds, inbound/outbound max winds/rmw/time, 
-        
+    
+    # basically one set of outputs if using VDM to start workflow, 
+    # another if you want all the storm and flight info
+    # will likely modify in the future ! *******
     if mode == 'trigger':
         leg_start = vdm_center_time - pd.Timedelta(45,unit='m')
         leg_end = vdm_center_time + pd.Timedelta(45,unit='m')
