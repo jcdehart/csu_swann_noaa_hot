@@ -20,6 +20,9 @@ def save_1d_netcdf(hdobs, u_nc, v_nc, samurai_time, args):
     # open file
     ncfile_sfc = Dataset('./nn_output/HOT_HDOBS_sfc_analysis_'+args.STORM+'_'+samurai_time.strftime('%Y%m%d%H%M')+'.nc',mode='w',format='NETCDF4') 
         
+    # define dimensions
+    time_dim = ncfile_sfc.createDimension('time', len(hdobs.dt)) # unlimited axis (can be appended to)
+
     # set up metadata
     ncfile_sfc.title='CSU Predicted Surface Wind'
     ncfile_sfc.subtitle="Generated using CSU SWANN"
