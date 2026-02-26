@@ -1,6 +1,6 @@
 
 
-def process_nn_vars(radii, rmw, theta, storm_dir, storm_intens, storm_motion, flight_wind, alt_plane, af):
+def process_nn_vars(radii, rmw, theta, storm_dir, storm_intens, storm_motion, flight_wind, alt_plane, HDOBS):
 
     # manipulate variables for use in neural net
 
@@ -36,7 +36,7 @@ def process_nn_vars(radii, rmw, theta, storm_dir, storm_intens, storm_motion, fl
     ## REMAINING
     # set up 2-D arrays of repeating scalar values for flight level (make automatic), best track vmax (knots), storm motion magnitude (m/s)
     alt = np.zeros_like(FL_wind)
-    if af == True:
+    if HDOBS == True:
         alt = alt_plane # m, actual plane height
     else:
         alt[:] = alt_plane*1000 # m, median plane height

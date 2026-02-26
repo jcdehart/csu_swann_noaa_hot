@@ -183,8 +183,8 @@ print('hdobs FL RMW: '+str(hdobs_rmw))
 print('hdobs FL intens: '+str(np.nanmax(wspd_earth)))
 
 # prepare variables for NN model - SAMURAI wind field
-# expected units of input vars (for this function, not model): km, km, deg (math), deg (math), kts, m/s, m/s, km (m for HDOBs)
-X_ratio, r_norm = hot_prep_data.process_nn_vars(rd, hdobs_rmw, th, storm_dir, storm_intens, storm_motion, wspd_earth, alt_plane, af)
+# expected units of input vars (for this function, not model): km, km, deg (math), deg (math), kts, m/s, m/s, km (m for HDOBs), is HDOBS or SAM?
+X_ratio, r_norm = hot_prep_data.process_nn_vars(rd, hdobs_rmw, th, storm_dir, storm_intens, storm_motion, wspd_earth, alt_plane, True)
 
 # standardize data
 x_data = model_utils.Standardize_Vars(X_ratio.T)
