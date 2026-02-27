@@ -12,8 +12,8 @@ for i in /bell-scratch/jcdehart/hot_operational/realtime/ingest_dir/center_data/
 
     set $outputString
 
-    echo "python hot_main_run_hdobsonly.py $1 $2 $3 N"
+    echo "python hot_main_run_hdobsonly.py $1 $2 $3 A"
 
-    python hot_main_run_hdobsonly.py $1 $2 $3 N
+    python hot_main_run_hdobsonly.py $1 $2 $3 A
     
 done
