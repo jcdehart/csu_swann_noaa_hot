@@ -7,8 +7,16 @@ Created on Fri Feb 20 2026
 """
 
 from hot_calc_centers import read_vdm
+import argparse
+# grab info from tcvitals or flight+ file
 
-# make a variable later lol
-file = '/bell-scratch/jcdehart/hot_operational/realtime/ingest_dir/center_data/vdm/2025/REPNT2-KWBC.202508181148.txt'
+parser = argparse.ArgumentParser()
+parser.add_argument("path", help="VDM file path", type=str)
+args = parser.parse_args()
+
+if len(args.path > 0):
+    file = args.path
+else:
+    file = '/bell-scratch/jcdehart/hot_operational/realtime/ingest_dir/center_data/vdm/2025/REPNT2-KWBC.202508181148.txt'
 
 read_vdm(file,'trigger')
