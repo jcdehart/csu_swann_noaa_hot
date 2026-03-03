@@ -115,6 +115,8 @@ def read_vdm(file, mode):
         print(storm_code[:4])
         print(leg_start.strftime('%Y%m%d%H%M'))
         print(leg_end.strftime('%Y%m%d%H%M'))
+        print(lat)
+        print(lon)
     elif mode == 'full':
         return (vdm_center_time, lat, lon, storm_code, storm_name, flight_code)
 

@@ -29,9 +29,8 @@ parser.add_argument("STORM", help="storm name (all caps)", type=str)
 parser.add_argument("STARTTIME", help="samurai start datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("ENDTIME", help="samurai end datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("PLANE", help="plane: NOAA (N) or AF (A)", type=str)
-parser.add_argument("--CENFN", default="gfs.tXXz.syndata.tcvitals.tm00", help="TC Vitals filename", type=str)
-parser.add_argument("--CENPATH", default="./ingest_dir/center_data", help="TC Vitals directory", type=str)
-parser.add_argument("--CENTYPE", default="tcvitals", help="center type (tcvitals or fplus)", type=str)
+parser.add_argument("--VDMLAT", default="0.0", help="VDM center lat", type=float)
+parser.add_argument("--VDMLON", default="0.0", help="VDM center lon", type=float)
 args = parser.parse_args()
 
 if args.PLANE == 'A':
@@ -136,8 +135,17 @@ print(dt_wc)
 
 # perhaps have different weights based on tcvitals intensity??? ********
 wgt = np.array([1, 1, 5])
-#storm_lon = np.average(np.array([lon_wc,storm_lon_1,storm_lon_2]),weights=wgt)
-#storm_lat = np.average(np.array([lat_wc,storm_lat_1,storm_lat_2]),weights=wgt)
+
+# use VDM lat/lon if exists, or W-C (**** might avg later*****)
+if (args.VDMLON != 0.0) & (args.VDMLAT != 0.0):
+    storm_lon = args.VDMLON
+    storm_lat = args.VDMLAT
+else:
+    storm_lon = lon_wc
+    storm_lat = lat_wc
+    #storm_lon = np.average(np.array([lon_wc,storm_lon_1,storm_lon_2]),weights=wgt)
+    #storm_lat = np.average(np.array([lat_wc,storm_lat_1,storm_lat_2]),weights=wgt)
+
 u_motion = np.nanmean(np.array([u_motion_1,u_motion_2]))
 v_motion = np.nanmean(np.array([v_motion_1,v_motion_2]))
 #print([storm_lat, storm_lon])
@@ -148,7 +156,7 @@ alt_plane = hdobs.hgt # in meters
 print('using height time series for HDOBs data')
 
 # convert hdobs to xy
-x_plane,y_plane = xy(hdobs.lat.values,hdobs.lon.values,lat_wc,lon_wc)
+x_plane,y_plane = xy(hdobs.lat.values,hdobs.lon.values,storm_lat,storm_lon)
 print('Using W-C center')
 
 #%% main code: step 3 - neural net
@@ -192,7 +200,6 @@ x_data = model_utils.Standardize_Vars(X_ratio.T)
 # make prediction with the neural net
 predict = nn_model.predict(x_data)
 predict[r_norm < 0.3] = np.nan
-#predict[r_norm < 0.5] = np.nan
 
 # reshape arrays and mask orig missing data
 sfc_wind_pred = wspd_earth*predict.T[0] # multiply reduction factor and flight-level wind
@@ -203,7 +210,6 @@ sfc_wind_pred[np.isnan(mag_3km)] = np.nan
 sfc_wind_pred[mag_3km*1.94 < 20] = np.nan ##### UNITS ALREADY IN KTS
 sfc_wind_pred[np.isnan(mag_3km)] = np.nan
 mag_3km[(rd/hdobs_rmw < 0.3)] = np.nan
-#mag_3km[(rd/hdobs_rmw < 0.5)] = np.nan
 print('/n')
 print('predicted max sfc wind: '+str(np.nanmax(sfc_wind_pred)))
 
@@ -249,15 +255,14 @@ figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_s
 
 textstr = '\n'.join((
     'Inputs: HDOBS',
-    'W-C Center: %.2f N, %.2f W' % (lat_wc,np.abs(lon_wc),), # assuming western hemisphere
+    'W-C Center: %.2f N, %.2f W' % (storm_lat,np.abs(storm_lon),), # assuming western hemisphere
     'RMW: %.1f (nm)' % (swann_rmw/1.852,),
     'Simp. Franklin: %.1f (kt)' % (simp_frank,), ))
 
 # save text file
-save_files.save_txt(lat_wc, lon_wc, hdobs_fl_vmax, swann_hdobs_vmax, swann_rmw, simp_frank, inDir, args, analysis_time, 'HDOBS')
+save_files.save_txt(storm_lat, storm_lon, hdobs_fl_vmax, swann_hdobs_vmax, swann_rmw, simp_frank, inDir, args, analysis_time, 'HDOBS')
 
-#%% main code: step 5 - generate any images
-# x,y instead of lat/lon? 
+#%% main code: step 5 - generate images
 
 x_plot, y_plot = np.meshgrid(np.arange(np.nanmin(x_plane),np.nanmax(x_plane)), 
     np.arange(np.nanmin(y_plane),np.nanmax(y_plane)))
