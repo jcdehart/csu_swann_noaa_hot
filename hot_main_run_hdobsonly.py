@@ -143,9 +143,11 @@ wgt = np.array([1, 1, 5])
 if (args.VDMLON != 0.0) & (args.VDMLAT != 0.0):
     storm_lon = args.VDMLON
     storm_lat = args.VDMLAT
+    print('Using VDM center')
 else:
     storm_lon = lon_wc
     storm_lat = lat_wc
+    print('Using W-C center')
     #storm_lon = np.average(np.array([lon_wc,storm_lon_1,storm_lon_2]),weights=wgt)
     #storm_lat = np.average(np.array([lat_wc,storm_lat_1,storm_lat_2]),weights=wgt)
 
@@ -160,7 +162,6 @@ print('using height time series for HDOBs data')
 
 # convert hdobs to xy
 x_plane,y_plane = xy(hdobs.lat.values,hdobs.lon.values,storm_lat,storm_lon)
-print('Using W-C center')
 
 #%% main code: step 3 - neural net
 
@@ -219,18 +220,12 @@ print('predicted max sfc wind: '+str(np.nanmax(sfc_wind_pred)))
 # grab RMW
 swann_rmw = rd[np.unravel_index(np.nanargmax(sfc_wind_pred),np.shape(sfc_wind_pred))]
 
+# ****** CHANGE TO JUST SPEED! ********
 # convert wind speed to u and v, assuming inflow angle is 22.6, from zhang and uhlhorn 2012, use th_r in radians
 u_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.cos(th_r) - sfc_wind_pred*np.sin(np.radians(90-22.6))*np.sin(th_r)
 v_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.sin(th_r) + sfc_wind_pred*np.sin(np.radians(90-22.6))*np.cos(th_r)
 
-#%% main code: step 4 - save output data as NetCDF (adapted from MetPy documentation)
-
-print('\n')
-print('########')
-print('save txt file, netcdf, image')
-
-# save netcdf file
-save_files.save_1d_netcdf(hdobs, u_nc, v_nc, samurai_time, args)
+#%% main code: step 4 - prep for saving files
 
 hdobs_fl_vmax = np.nanmax(hdobs.wsp)
 swann_hdobs_vmax = np.nanmax(sfc_wind_pred*1.94)
@@ -262,10 +257,14 @@ textstr = '\n'.join((
     'RMW: %.1f (nm)' % (swann_rmw/1.852,),
     'Simp. Franklin: %.1f (kt)' % (simp_frank,), ))
 
-# save text file
-save_files.save_txt(storm_lat, storm_lon, hdobs_fl_vmax, swann_hdobs_vmax, swann_rmw, simp_frank, inDir, args, analysis_time, 'HDOBS')
+#%% main code: step 5 - save all files
 
-#%% main code: step 5 - generate images
+print('\n')
+print('########')
+print('save txt file, netcdf, image')
+
+# save netcdf file
+save_files.save_1d_netcdf(hdobs, u_nc, v_nc, samurai_time, args)
 
 x_plot, y_plot = np.meshgrid(np.arange(np.nanmin(x_plane),np.nanmax(x_plane)), 
     np.arange(np.nanmin(y_plane),np.nanmax(y_plane)))
@@ -295,6 +294,11 @@ echo_edges[2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane > 0) | (y_
 echo_edges[3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane > 0) | (y_plane < 0), np.nan, rd))
 
 vmax_table = [[hdobs_fl_vmax],[swann_hdobs_vmax]]
+
+# save text file
+save_files.save_txt(storm_lat, storm_lon, hdobs_fl_vmax, swann_hdobs_vmax, swann_rmw, simp_frank, radii_vals_nm, echo_edges,
+                    inDir, args, analysis_time, 'HDOBS')
+
 
 # save image
 save_files.plot_image_2pan(x_plane, y_plane, sfc_wind_pred, hdobs, radii_vals_str, radii_vals, echo_edges, 

@@ -362,11 +362,7 @@ sfc_wind_pred_ac[mag_3km_ac*1.94 < 20] = np.nan ##### UNITS ALREADY IN KTS
 sfc_wind_pred_ac[np.isnan(mag_3km_ac)] = np.nan
 mag_3km_ac[(rd_ac/sam_rmw < 0.3)] = np.nan
 
-#%% main code: step 4 - save output data as NetCDF (adapted from MetPy documentation)
-
-print('\n')
-print('########')
-print('save txt file, netcdf, image')
+#%% main code: step 4 - prep for file saving
 
 if alt_plane == 1.5:
     sf_frac = 0.8
@@ -387,17 +383,18 @@ textstr = '\n'.join((
     'RMW: %.1f (nm)' % (swann_rmw/1.852,),
     'Simp. Franklin: %.1f (kt)' % (simp_frank,), ))
 
-# save output text file
-save_files.save_txt(sam_lat, sam_lon, sam_fl_vmax, swann_sam_vmax, sam_rmw, simp_frank, inDir, args, analysis_time, 'SAM')
-
 # convert coords, first to cartesian
 x_plot = X
 y_plot = Y
 
+#%% main code: step 5 - generate any images
+
+print('\n')
+print('########')
+print('save txt file, netcdf, image')
+
 # save netcdf file
 save_files.save_2d_netcdf(lat_nc, lon_nc, u_nc, v_nc, samurai_time, analysis_time, args)
-
-#%% main code: step 5 - generate any images
 
 # wind radii calculations
 
@@ -423,6 +420,11 @@ echo_edges[2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plot > 0) | (y_p
 echo_edges[3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plot > 0) | (y_plot < 0), np.nan, rd))
 
 vmax_table = [[hdobs_fl_vmax,sam_fl_vmax],[swann_hdobs_vmax, swann_sam_vmax]]
+
+# save output text file
+save_files.save_txt(sam_lat, sam_lon, sam_fl_vmax, swann_sam_vmax, sam_rmw, simp_frank, radii_vals_nm, echo_edges,
+                    inDir, args, analysis_time, 'SAM')
+
 
 # save figure
 save_files.plot_image_4pan(x_plot, y_plot, rd, x_plane, y_plane, sfc_wind_pred, mag_3km, sfc_wind_pred_ac, hdobs, swann_rmw,

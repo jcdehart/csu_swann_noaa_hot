@@ -1,17 +1,37 @@
-def save_txt(lat, lon, fl_vmax, swann_vmax, rmw, simp_frank, inDir, args, analysis_time, analysis_type):
+def save_txt(lat, lon, fl_vmax, swann_vmax, rmw, simp_frank, radii, edges, inDir, args, analysis_time, analysis_type):
+
+    # NE, SE, SW, NW
 
     if analysis_type == 'SAM':
         f = open(inDir+'txt_output/'+args.STORM+'_'+analysis_time+'_data_samurai.txt','w')
-        lines = ['Inputs: HRD TDR, HDOBS\n', 'SAMURAI Center: '+str(lat)+', '+str(lon)+'\n', 'SAMURAI Vmax (kts): '+str(fl_vmax)+'\n', 'SWANN Vmax (kts): '+str(swann_vmax), 'SWANN RMW (nm): '+str(rmw/1.852), 'Simplified Franklin (kts): '+str(simp_frank)]
+        lines = ['Inputs: HRD TDR, HDOBS\n', 'SAMURAI Center: '+str(lat)+', '+str(lon)+'\n', 
+                 'SAMURAI Vmax (kts): '+str(fl_vmax)+'\n', 
+                 'SWANN Vmax (kts): '+str(swann_vmax), 'SWANN RMW (nm): '+str(rmw/1.852), 'Simplified Franklin (kts): '+str(simp_frank)+'\n',
+                 '34 Radii (NE,SE,SW,NW;nm): '+str(radii[0,0])+' ', +str(radii[0,1])+' ', +str(radii[0,2])+' ', +str(radii[0,3])+'\n',
+                 '50 Radii (NE,SE,SW,NW;nm): '+str(radii[1,0])+' ', +str(radii[1,1])+' ', +str(radii[1,2])+' ', +str(radii[1,3])+'\n',
+                 '64 Radii (NE,SE,SW,NW;nm): '+str(radii[2,0])+' ', +str(radii[2,1])+' ', +str(radii[2,2])+' ', +str(radii[2,3])+'\n',
+                 '34 Edges (NE,SE,SW,NW;nm): '+str(edges[0,0])+' ', +str(edges[0,1])+' ', +str(edges[0,2])+' ', +str(edges[0,3])+'\n',
+                 '50 Edges (NE,SE,SW,NW;nm): '+str(edges[1,0])+' ', +str(edges[1,1])+' ', +str(edges[1,2])+' ', +str(edges[1,3])+'\n',
+                 '64 Edges (NE,SE,SW,NW;nm): '+str(edges[2,0])+' ', +str(edges[2,1])+' ', +str(edges[2,2])+' ', +str(edges[2,3])]
         f.writelines(lines)
         f.close()
     elif analysis_type == 'HDOBS':
         f = open(inDir+'txt_output/'+args.STORM+'_'+analysis_time+'_data_hdobsonly.txt','w')
-        lines = ['Inputs: HDOBS\n', 'W-C Center: '+str(lat)+', '+str(lon)+'\n', 'HDOBS Vmax (kts): '+str(fl_vmax)+'\n', 'SWANN Vmax (kts): '+str(swann_vmax)+' ', 'SWANN RMW (nm): '+str(rmw/1.852)+' ', 'Simplified Franklin (kts): '+str(simp_frank)]
+        lines = ['Inputs: HDOBS\n', 'HDOBS Center: '+str(lat)+', '+str(lon)+'\n', 
+                 'HDOBS Vmax (kts): '+str(fl_vmax)+'\n', 
+                 'SWANN Vmax (kts): '+str(swann_vmax)+' ', 'SWANN RMW (nm): '+str(rmw/1.852)+' ', 'Simplified Franklin (kts): '+str(simp_frank)+'\n',
+                 '34 Radii (NE,SE,SW,NW;nm): '+str(radii[0,0])+' ', +str(radii[0,1])+' ', +str(radii[0,2])+' ', +str(radii[0,3])+'\n',
+                 '50 Radii (NE,SE,SW,NW;nm): '+str(radii[1,0])+' ', +str(radii[1,1])+' ', +str(radii[1,2])+' ', +str(radii[1,3])+'\n',
+                 '64 Radii (NE,SE,SW,NW;nm): '+str(radii[2,0])+' ', +str(radii[2,1])+' ', +str(radii[2,2])+' ', +str(radii[2,3])+'\n',
+                 '34 Edges (NE,SE,SW,NW;nm): '+str(edges[0,0])+' ', +str(edges[0,1])+' ', +str(edges[0,2])+' ', +str(edges[0,3])+'\n',
+                 '50 Edges (NE,SE,SW,NW;nm): '+str(edges[1,0])+' ', +str(edges[1,1])+' ', +str(edges[1,2])+' ', +str(edges[1,3])+'\n',
+                 '64 Edges (NE,SE,SW,NW;nm): '+str(edges[2,0])+' ', +str(edges[2,1])+' ', +str(edges[2,2])+' ', +str(edges[2,3])]
         f.writelines(lines)
         f.close()
 
 def save_1d_netcdf(hdobs, u_nc, v_nc, samurai_time, args):
+
+    # save output data as NetCDF (adapted from MetPy documentation)
 
     from netCDF4 import Dataset
     import numpy as np
@@ -57,6 +77,8 @@ def save_1d_netcdf(hdobs, u_nc, v_nc, samurai_time, args):
     ncfile_sfc.close()
 
 def save_2d_netcdf(lat_nc, lon_nc, u_nc, v_nc, samurai_time, analysis_time, args):
+
+    # save output data as NetCDF (adapted from MetPy documentation)
 
     from netCDF4 import Dataset
     import numpy as np
