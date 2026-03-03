@@ -7,12 +7,12 @@ def save_txt(lat, lon, fl_vmax, swann_vmax, rmw, simp_frank, radii, edges, inDir
         lines = ['Inputs: HRD TDR, HDOBS\n', 'SAMURAI Center: '+str(lat)+', '+str(lon)+'\n', 
                  'SAMURAI Vmax (kts): '+str(fl_vmax)+'\n', 
                  'SWANN Vmax (kts): '+str(swann_vmax), 'SWANN RMW (nm): '+str(rmw/1.852), 'Simplified Franklin (kts): '+str(simp_frank)+'\n',
-                 '34 Radii (NE,SE,SW,NW;nm): '+str(radii[0,0])+' ', +str(radii[0,1])+' ', +str(radii[0,2])+' ', +str(radii[0,3])+'\n',
-                 '50 Radii (NE,SE,SW,NW;nm): '+str(radii[1,0])+' ', +str(radii[1,1])+' ', +str(radii[1,2])+' ', +str(radii[1,3])+'\n',
-                 '64 Radii (NE,SE,SW,NW;nm): '+str(radii[2,0])+' ', +str(radii[2,1])+' ', +str(radii[2,2])+' ', +str(radii[2,3])+'\n',
-                 '34 Edges (NE,SE,SW,NW;nm): '+str(edges[0,0])+' ', +str(edges[0,1])+' ', +str(edges[0,2])+' ', +str(edges[0,3])+'\n',
-                 '50 Edges (NE,SE,SW,NW;nm): '+str(edges[1,0])+' ', +str(edges[1,1])+' ', +str(edges[1,2])+' ', +str(edges[1,3])+'\n',
-                 '64 Edges (NE,SE,SW,NW;nm): '+str(edges[2,0])+' ', +str(edges[2,1])+' ', +str(edges[2,2])+' ', +str(edges[2,3])]
+                 '34 Radii (NE,SE,SW,NW;nm): '+str(radii[0,0])+' ', str(radii[0,1])+' ', str(radii[0,2])+' ', str(radii[0,3])+'\n',
+                 '50 Radii (NE,SE,SW,NW;nm): '+str(radii[1,0])+' ', str(radii[1,1])+' ', str(radii[1,2])+' ', str(radii[1,3])+'\n',
+                 '64 Radii (NE,SE,SW,NW;nm): '+str(radii[2,0])+' ', str(radii[2,1])+' ', str(radii[2,2])+' ', str(radii[2,3])+'\n',
+                 '34 Edges (NE,SE,SW,NW;nm): '+str(edges[0,0])+' ', str(edges[0,1])+' ', str(edges[0,2])+' ', str(edges[0,3])+'\n',
+                 '50 Edges (NE,SE,SW,NW;nm): '+str(edges[1,0])+' ', str(edges[1,1])+' ', str(edges[1,2])+' ', str(edges[1,3])+'\n',
+                 '64 Edges (NE,SE,SW,NW;nm): '+str(edges[2,0])+' ', str(edges[2,1])+' ', str(edges[2,2])+' ', str(edges[2,3])]
         f.writelines(lines)
         f.close()
     elif analysis_type == 'HDOBS':
@@ -20,12 +20,12 @@ def save_txt(lat, lon, fl_vmax, swann_vmax, rmw, simp_frank, radii, edges, inDir
         lines = ['Inputs: HDOBS\n', 'HDOBS Center: '+str(lat)+', '+str(lon)+'\n', 
                  'HDOBS Vmax (kts): '+str(fl_vmax)+'\n', 
                  'SWANN Vmax (kts): '+str(swann_vmax)+' ', 'SWANN RMW (nm): '+str(rmw/1.852)+' ', 'Simplified Franklin (kts): '+str(simp_frank)+'\n',
-                 '34 Radii (NE,SE,SW,NW;nm): '+str(radii[0,0])+' ', +str(radii[0,1])+' ', +str(radii[0,2])+' ', +str(radii[0,3])+'\n',
-                 '50 Radii (NE,SE,SW,NW;nm): '+str(radii[1,0])+' ', +str(radii[1,1])+' ', +str(radii[1,2])+' ', +str(radii[1,3])+'\n',
-                 '64 Radii (NE,SE,SW,NW;nm): '+str(radii[2,0])+' ', +str(radii[2,1])+' ', +str(radii[2,2])+' ', +str(radii[2,3])+'\n',
-                 '34 Edges (NE,SE,SW,NW;nm): '+str(edges[0,0])+' ', +str(edges[0,1])+' ', +str(edges[0,2])+' ', +str(edges[0,3])+'\n',
-                 '50 Edges (NE,SE,SW,NW;nm): '+str(edges[1,0])+' ', +str(edges[1,1])+' ', +str(edges[1,2])+' ', +str(edges[1,3])+'\n',
-                 '64 Edges (NE,SE,SW,NW;nm): '+str(edges[2,0])+' ', +str(edges[2,1])+' ', +str(edges[2,2])+' ', +str(edges[2,3])]
+                 '34 Radii (NE,SE,SW,NW;nm): '+str(radii[0,0])+' ', str(radii[0,1])+' ', str(radii[0,2])+' ', str(radii[0,3])+'\n',
+                 '50 Radii (NE,SE,SW,NW;nm): '+str(radii[1,0])+' ', str(radii[1,1])+' ', str(radii[1,2])+' ', str(radii[1,3])+'\n',
+                 '64 Radii (NE,SE,SW,NW;nm): '+str(radii[2,0])+' ', str(radii[2,1])+' ', str(radii[2,2])+' ', str(radii[2,3])+'\n',
+                 '34 Edges (NE,SE,SW,NW;nm): '+str(edges[0,0])+' ', str(edges[0,1])+' ', str(edges[0,2])+' ', str(edges[0,3])+'\n',
+                 '50 Edges (NE,SE,SW,NW;nm): '+str(edges[1,0])+' ', str(edges[1,1])+' ', str(edges[1,2])+' ', str(edges[1,3])+'\n',
+                 '64 Edges (NE,SE,SW,NW;nm): '+str(edges[2,0])+' ', str(edges[2,1])+' ', str(edges[2,2])+' ', str(edges[2,3])]
         f.writelines(lines)
         f.close()
 
