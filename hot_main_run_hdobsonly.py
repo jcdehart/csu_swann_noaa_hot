@@ -31,6 +31,9 @@ parser.add_argument("ENDTIME", help="samurai end datetime (YYYYMMDDHHMM)", type=
 parser.add_argument("PLANE", help="plane: NOAA (N) or AF (A)", type=str)
 parser.add_argument("--VDMLAT", default="0.0", help="VDM center lat", type=float)
 parser.add_argument("--VDMLON", default="0.0", help="VDM center lon", type=float)
+parser.add_argument("--CENFN", default="gfs.tXXz.syndata.tcvitals.tm00", help="TC Vitals filename", type=str)
+parser.add_argument("--CENPATH", default="./ingest_dir/center_data", help="TC Vitals directory", type=str)
+parser.add_argument("--CENTYPE", default="tcvitals", help="center type (tcvitals or fplus)", type=str)
 args = parser.parse_args()
 
 if args.PLANE == 'A':
