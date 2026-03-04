@@ -125,6 +125,8 @@ def save_2d_netcdf(lat_nc, lon_nc, u_nc, v_nc, samurai_time, analysis_time, args
 def plot_image_2pan(x_plane, y_plane, sfc_wind_pred, hdobs,
                radii_vals_str, radii_vals, echo_edges, textstr, vmax_table, figtitle, args, imDir, samurai_time):
 
+    import matplotlib
+    matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
     from matplotlib.font_manager import FontProperties
@@ -181,6 +183,8 @@ def plot_image_2pan(x_plane, y_plane, sfc_wind_pred, hdobs,
 def plot_image_4pan(x_plot, y_plot, rd, x_plane, y_plane, sfc_wind_pred, mag_3km, sfc_wind_pred_ac, hdobs, swann_rmw,
                radii_vals_str, radii_vals, echo_edges, textstr, vmax_table, figtitle, args, imDir, analysis_time):
 
+    import matplotlib
+    matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from matplotlib.ticker import AutoMinorLocator
     import matplotlib.colors as colors
