@@ -13,6 +13,7 @@ import pandas as pd
 from netCDF4 import Dataset
 import argparse
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from tensorflow.keras.models import model_from_json
 import model_utils
 from samurai_gen_file import make_cen_file, modify_param_file

@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 import argparse
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from tensorflow.keras.models import model_from_json
 import model_utils
 from geo_conversion import xy
