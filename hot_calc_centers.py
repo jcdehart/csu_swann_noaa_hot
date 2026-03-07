@@ -262,6 +262,9 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
     dfs_good = [dfs[i] for i in good_final]
     full_ts = pd.concat(dfs_good,ignore_index=True)
 
+    # remove any lines where final column is NaN - likely a missing value in earlier column, remove in case
+    full_ts = full_ts[full_ts.iloc[:,12].notna()]
+
     # create new dataframe with actual values we want, starting with datetime
     hdobs_all = pd.DataFrame(data={'dt':pd.to_datetime(full_ts[0],format='%Y%m%d%H%M%S',utc=True)})
 
