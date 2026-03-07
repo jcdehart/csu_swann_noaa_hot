@@ -263,13 +263,15 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
     full_ts = pd.concat(dfs_good,ignore_index=True)
 
     # remove any lines where final column is NaN - likely a missing value in earlier column, remove in case
-    full_ts = full_ts[full_ts.iloc[:,12].notna()]
+    full_ts = full_ts[full_ts.iloc[:,12].notna()].reset_index(drop=True)
 
     # create new dataframe with actual values we want, starting with datetime
     hdobs_all = pd.DataFrame(data={'dt':pd.to_datetime(full_ts[0],format='%Y%m%d%H%M%S',utc=True)})
+    print(hdobs_all.dt.values)
 
     # correct for crossing of midnight - should be LARGER than last value? probably fix in future....
     hdobs_all.dt[hdobs_all.dt > hdobs_all.dt[len(hdobs_all.dt)-1]] = hdobs_all.dt[hdobs_all.dt > hdobs_all.dt[len(hdobs_all.dt)-1]] - pd.Timedelta(1,'day')
+    print(hdobs_all.dt.values)
 
     if hdobs_all.dt.diff().max() == pd.Timedelta(60,'s'):
         print('max difference of 60 seconds - conversion good')
