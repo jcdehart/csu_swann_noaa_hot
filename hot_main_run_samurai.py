@@ -104,7 +104,7 @@ if len(hdobs_sm.mission.unique()) > 1:
 os.system('for i in '+sam_ingest_dir+'/*.txt; do mv "$i" "${i%.txt}.hdob"; done')
 
 # read HDOBS
-hdobs = hot_calc_centers.read_hdobs('KWBC', storm_name_2,'SAMURAI', leg_start, leg_end)
+hdobs, mission = hot_calc_centers.read_hdobs('KWBC', storm_name_2,'SAMURAI', leg_start, leg_end)
 
 print('avg altitude: '+str(hdobs.hgt.mean()))
 print('min altitude: '+str(hdobs.hgt.min()))
@@ -376,7 +376,7 @@ swann_sam_vmax = np.nanmax(sfc_wind_pred*1.94)
 swann_hdobs_vmax = np.nanmax(sfc_wind_pred_ac*1.94)
 simp_frank = sf_frac*sam_fl_vmax
 
-figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_sm.mission.unique()[0] + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
+figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + mission + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
 
 textstr = '\n'.join((
     'Inputs: HRD TDR, HDOBS',

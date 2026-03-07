@@ -146,13 +146,14 @@ def identify_hdob_files(all_files, files, storm, start_time, end_time, inDir):
     dfs = [x for x in dfs_init if x is not None] # remove instances with None
     good = []
     planes = []
+    missions = []
     bad_plane = None
     bad_plane_files = []
 
     for i in range(len(dfs)): 
 
         if np.isin(files[i],bad_plane_files):
-            print('file is from landing plane '+files[i])
+            print('file is from landing plane: '+files[i])
             planes.append(bad_plane)
             continue
 
@@ -163,14 +164,14 @@ def identify_hdob_files(all_files, files, storm, start_time, end_time, inDir):
         
         f = open(files[i])
         lines = f.readlines()
-        plane = lines[3][0:5]
+        plane = lines[3].split()[0]
+        mission = lines[3].split()[1]
         planes.append(plane)
 
         hdob_alt = dfs[i][4].astype('float')
         if (np.nanmean(hdob_alt) > 5000):
             print(np.nanmean(hdob_alt))
-            print('altitude higher than 5000 m, possibly transit')
-            print('deleting file '+files[i])
+            print('altitude > 5 km, possibly transit, deleting file '+files[i])
             os.system('rm -rf '+files[i])
             continue
 
@@ -181,14 +182,13 @@ def identify_hdob_files(all_files, files, storm, start_time, end_time, inDir):
             print(hdob_dt)
 
             if (hdob_dt.iloc[0] > end_time) | (hdob_dt.iloc[-1] < start_time):
-                print('hdob file out of order - not within time range')
-                print('deleting file '+files[i])
+                print('hdob file out of order - not within time range, deleting file '+files[i])
                 os.system('rm -rf '+files[i])
                 continue
 
             print(dfs[i])
 
-            print('plane altitude < 1000, '+plane+' likely landing, will delete files from plane')
+            print('plane altitude < 1 km, '+plane+' likely landing, will delete files from plane')
             bad_plane = plane
 
             # use grep to find files with plane
@@ -210,8 +210,10 @@ def identify_hdob_files(all_files, files, storm, start_time, end_time, inDir):
         # make sure file all correspond to same storm
         if (os.system('grep '+storm+' '+files[i]) != 256):
             good.append(i)
+            missions.append(mission)
         elif (os.system('grep TDR '+files[i]) != 256):
             good.append(i)
+            missions.append(mission)
             print('storm name not found, but TDR string found - unnamed storm?')
         else:
             print('storm name not found in HDOBS')
@@ -220,13 +222,15 @@ def identify_hdob_files(all_files, files, storm, start_time, end_time, inDir):
     # remove any remaining files from descending aircraft
     # should rename vars lol
     if bad_plane is not None:
-        planes_good = [planes[i] for i in good]
-        only_instorm_flights = [i for i, x in enumerate(planes_good) if x != bad_plane]
-        good_final = [good[i] for i in only_instorm_flights]
+        planes_good = [planes[i] for i in good] # select plane names that meet altitude reqs
+        only_instorm_flights = [i for i, x in enumerate(planes_good) if x != bad_plane] # indices that aren't a landing plane
+        good_final = [good[i] for i in only_instorm_flights] # remove any good indices that were with a landing plane
+        missions_final = [missions[i] for i in only_instorm_flights]
     else:
         good_final = good
+        missions_final = missions
         
-    return(dfs, good_final)
+    return(dfs, good_final, missions_final)
 
 
 def read_hdobs(plane, storm, analysis_type, start_time, end_time):
@@ -246,7 +250,13 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
     all_files = sorted(glob.glob(inDir+'/*'+plane+'*.hdob'))
     files = sorted(glob.glob(inDir+'/*'+plane+'*.hdob')) # set in case some were deleted
 
-    dfs, good_final = identify_hdob_files(all_files, files, storm, start_time, end_time, inDir)
+    dfs, good_final, missions = identify_hdob_files(all_files, files, storm, start_time, end_time, inDir)
+
+    # get mission
+    if len(list(set(missions))) == 1:
+        mission = list(set(missions))
+    else:
+        mission = max(set(missions), key=missions.count)
 
     # pare down dataframes
     dfs_good = [dfs[i] for i in good_final]
@@ -308,7 +318,7 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
         print('need additional levels')
 
 
-    return(hdobs)
+    return(hdobs, mission[0])
 
 
 def center_tcvitals(args):

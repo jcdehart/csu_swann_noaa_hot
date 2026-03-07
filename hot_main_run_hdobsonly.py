@@ -109,9 +109,9 @@ os.system('for i in '+hdobs_ingest_dir+'/*.txt; do mv "$i" "${i%.txt}.hdob"; don
 
 # read in hdobs data
 if af == True:
-    hdobs = hot_calc_centers.read_hdobs('KNHC', storm_name_2,'HDOBS', leg_start, leg_end)
+    hdobs, mission = hot_calc_centers.read_hdobs('KNHC', storm_name_2,'HDOBS', leg_start, leg_end)
 elif af == False:
-    hdobs = hot_calc_centers.read_hdobs('KWBC', storm_name_2,'HDOBS', leg_start, leg_end)
+    hdobs, mission = hot_calc_centers.read_hdobs('KWBC', storm_name_2,'HDOBS', leg_start, leg_end)
 
 print('avg altitude: '+str(hdobs.hgt.mean()))
 print('min altitude: '+str(hdobs.hgt.min()))
@@ -250,7 +250,7 @@ else:
 simp_frank = sf_frac*hdobs_fl_vmax
 
 # set up info for figure
-figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_sm.mission.unique()[0] + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
+figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + mission + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
 
 textstr = '\n'.join((
     'Inputs: HDOBS',
