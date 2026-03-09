@@ -135,7 +135,7 @@ def read_hdob_file(f):
         os.remove(f)
 
 
-def identify_hdob_files(all_files, files, storm, start_time, end_time, inDir):
+def identify_hdob_files(all_files, storm, start_time, end_time, inDir):
 
     import numpy as np
     import pandas as pd
@@ -144,6 +144,7 @@ def identify_hdob_files(all_files, files, storm, start_time, end_time, inDir):
 
     dfs_init = [read_hdob_file(f) for f in all_files]
     dfs = [x for x in dfs_init if x is not None] # remove instances with None
+    files = [file for file, x in zip(all_files, dfs_init) if x is not None]
     good = []
     planes = []
     missions = []
@@ -156,6 +157,10 @@ def identify_hdob_files(all_files, files, storm, start_time, end_time, inDir):
             print('file is from landing plane: '+files[i])
             planes.append(bad_plane)
             continue
+
+        # if np.isin(files[i], notread):
+        #     print('file not read due to error: '+files[i])
+        #     continue
 
         dfs[i][0] = files[i][-17:-9]+dfs[i][0] # add YYYYMMDD to existing time strings
 
@@ -170,8 +175,7 @@ def identify_hdob_files(all_files, files, storm, start_time, end_time, inDir):
 
         hdob_alt = dfs[i][4].astype('float')
         if (np.nanmean(hdob_alt) > 5000):
-            print(np.nanmean(hdob_alt))
-            print('altitude > 5 km, possibly transit, deleting file '+files[i])
+            print('altitude > 5 km ('+str(np.nanmean(hdob_alt))+'), possibly transit, deleting file '+files[i])
             os.system('rm -rf '+files[i])
             continue
 
@@ -179,22 +183,18 @@ def identify_hdob_files(all_files, files, storm, start_time, end_time, inDir):
         if ((hdob_alt < 1000).any()):
 
             hdob_dt = pd.to_datetime(dfs[i][0],format='%Y%m%d%H%M%S',utc=True)
-            print(hdob_dt)
 
             if (hdob_dt.iloc[0] > end_time) | (hdob_dt.iloc[-1] < start_time):
                 print('hdob file out of order - not within time range, deleting file '+files[i])
                 os.system('rm -rf '+files[i])
                 continue
 
-            print(dfs[i])
-
             print('plane altitude < 1 km, '+plane+' likely landing, will delete files from plane')
             bad_plane = plane
 
             # use grep to find files with plane
             landing_files = subprocess.check_output('grep -l '+plane+' '+inDir+'/*.hdob',shell=True).decode().strip().split('\n')
-            print(landing_files)
-            print(len(landing_files))
+
             if len(landing_files) > 0:
 
                 for lf in range(len(landing_files)):
@@ -229,7 +229,8 @@ def identify_hdob_files(all_files, files, storm, start_time, end_time, inDir):
     else:
         good_final = good
         missions_final = missions
-        
+
+
     return(dfs, good_final, missions_final)
 
 
@@ -248,9 +249,9 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
 
     # sort files by name, read in files using pandas, add YYYYMMDD from file name to time, concat files together
     all_files = sorted(glob.glob(inDir+'/*'+plane+'*.hdob'))
-    files = sorted(glob.glob(inDir+'/*'+plane+'*.hdob')) # set in case some were deleted
+    # files = sorted(glob.glob(inDir+'/*'+plane+'*.hdob')) # set in case some were deleted
 
-    dfs, good_final, missions = identify_hdob_files(all_files, files, storm, start_time, end_time, inDir)
+    dfs, good_final, missions = identify_hdob_files(all_files, storm, start_time, end_time, inDir)
 
     # get mission
     if len(list(set(missions))) == 1:
@@ -267,11 +268,9 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
 
     # create new dataframe with actual values we want, starting with datetime
     hdobs_all = pd.DataFrame(data={'dt':pd.to_datetime(full_ts[0],format='%Y%m%d%H%M%S',utc=True)})
-    print(hdobs_all.dt.values)
 
     # correct for crossing of midnight - should be LARGER than last value? probably fix in future....
     hdobs_all.dt[hdobs_all.dt > hdobs_all.dt[len(hdobs_all.dt)-1]] = hdobs_all.dt[hdobs_all.dt > hdobs_all.dt[len(hdobs_all.dt)-1]] - pd.Timedelta(1,'day')
-    print(hdobs_all.dt.values)
 
     if hdobs_all.dt.diff().max() == pd.Timedelta(60,'s'):
         print('max difference of 60 seconds - conversion good')
