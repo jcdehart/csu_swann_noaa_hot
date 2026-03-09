@@ -307,7 +307,7 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
     hdobs_final.sfmr.loc[(hdobs_all.flag_met == 3) | (hdobs_all.flag_met == 5) | (hdobs_all.flag_met == 6) | (hdobs_all.flag_met == 9)] = np.nan
 
     # remove any entries above 650 hPa to focus on low-level flight data and bad positional flag
-    hdobs = hdobs_final[(hdobs_all.p > 650.) & (hdobs_all.flag_pos == 0)].reset_index()
+    hdobs = hdobs_final[(hdobs_all.p > 605.) & (hdobs_all.flag_pos == 0)].reset_index()
     
     # calculate D-value
     # **** may need to use adaptive value here if legs contain two levels... *******
