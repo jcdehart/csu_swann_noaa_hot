@@ -270,11 +270,12 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
     hdobs_all = pd.DataFrame(data={'dt':pd.to_datetime(full_ts[0],format='%Y%m%d%H%M%S',utc=True)})
 
     # correct for crossing of midnight - should be LARGER than last value? probably fix in future....
-    hdobs_all.dt[hdobs_all.dt > hdobs_all.dt[len(hdobs_all.dt)-1]] = hdobs_all.dt[hdobs_all.dt > hdobs_all.dt[len(hdobs_all.dt)-1]] - pd.Timedelta(1,'day')
+    hdobs_all.loc[(hdobs_all.dt > hdobs_all.dt[len(hdobs_all.dt)-1]), 'dt'] = hdobs_all.dt[hdobs_all.dt > hdobs_all.dt[len(hdobs_all.dt)-1]] - pd.Timedelta(1,'day')
 
-    if hdobs_all.dt.diff().max() == pd.Timedelta(60,'s'):
+    if hdobs_all.dt.diff().max() <= pd.Timedelta(60,'s'):
         print('max difference of 60 seconds - conversion good')
     else:
+        print(hdobs_all.dt.diff().max())
         print('issue with hdobs timing order')
 
     # convert lat/lon to good format (degrees and then MINUTES #facepalm)
@@ -303,8 +304,8 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
     # set questionable wind data to nan
     hdobs_final = hdobs_all.copy(deep=True)
     hdobs_final[hdobs_all == 999] = np.nan
-    hdobs_final.wsp.loc[(hdobs_all.flag_met == 2) | (hdobs_all.flag_met == 4) | (hdobs_all.flag_met == 6) | (hdobs_all.flag_met == 9)] = np.nan
-    hdobs_final.sfmr.loc[(hdobs_all.flag_met == 3) | (hdobs_all.flag_met == 5) | (hdobs_all.flag_met == 6) | (hdobs_all.flag_met == 9)] = np.nan
+    hdobs_final.loc[((hdobs_all.flag_met == 2) | (hdobs_all.flag_met == 4) | (hdobs_all.flag_met == 6) | (hdobs_all.flag_met == 9)), 'wsp'] = np.nan
+    hdobs_final.loc[((hdobs_all.flag_met == 3) | (hdobs_all.flag_met == 5) | (hdobs_all.flag_met == 6) | (hdobs_all.flag_met == 9)), 'sfmr'] = np.nan
 
     # remove any entries above 650 hPa to focus on low-level flight data and bad positional flag
     hdobs = hdobs_final[(hdobs_all.p > 605.) & (hdobs_all.flag_pos == 0)].reset_index()
