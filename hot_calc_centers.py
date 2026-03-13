@@ -131,19 +131,20 @@ def run_wc(hdobs):
     window = 50
     approaches = len(peaks)
     peaks_refined = center_funcs.refine_peaks_minima(peaks_refined, willfunc)
-    dt_wc, dt_wc_inds, lon_wc_old, lat_wc_old = center_funcs.peaks_wc(peaks_refined, approaches, hdobs.lat.values, hdobs.lon.values, wdir_rel, hdobs.dt)
+    dt_wc, lon_wc_old, lat_wc_old = center_funcs.peaks_wc(peaks_refined, approaches, hdobs.lat.values, hdobs.lon.values, wdir_rel, hdobs.dt)
+    dt_wc_inds = dt_wc[::2]
 
-    if len(dt_wc) > 1:
+    if len(dt_wc) > 2:
         # check pressure and height vals
         hdobs_p = np.round(hdobs.p[dt_wc_inds]/50)*50
         if len(np.unique(hdobs_p)) == 1:
-            lower_ind = np.argmin(hdobs.hgt[dt_wc_inds])
-            lon_wc = lon_wc_old[dt_wc_inds[lower_ind]]
-            lat_wc = lat_wc_old[dt_wc_inds[lower_ind]]
+            lower_ind = np.argmin([hdobs.hgt.values[x] for x in dt_wc_inds])
+            lon_wc = lon_wc_old[lower_ind]
+            lat_wc = lat_wc_old[lower_ind]
         else:
-            lower_ind = np.argmin(hdobs.hgt[dt_wc_inds])
-            lon_wc = lon_wc_old[dt_wc_inds[lower_ind]]
-            lat_wc = lat_wc_old[dt_wc_inds[lower_ind]]
+            lower_ind = np.argmin([hdobs.hgt.values[x] for x in dt_wc_inds])
+            lon_wc = lon_wc_old[lower_ind]
+            lat_wc = lat_wc_old[lower_ind]
             print('centers greater than 50 hPa apart, revisit algoritm')
             print(hdobs.p[dt_wc_inds])
             print(hdobs.hgt[dt_wc_inds])
