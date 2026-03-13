@@ -121,7 +121,37 @@ def read_vdm(file, mode):
         return (vdm_center_time, lat, lon, storm_code, storm_name, flight_code)
 
 
-# def center_simplex? chris's code???? *********
+def run_wc(hdobs):
+
+    import center_funcs
+    import numpy as np
+
+    peaks, properties, willfunc, wdir_rel = center_funcs.find_peaks(hdobs.wsp.values, hdobs.wdir.values, hdobs.dval.values, 0, 0) # change u_tc/v_tc?????
+    peaks_refined = peaks.astype(int)
+    window = 50
+    approaches = len(peaks)
+    peaks_refined = center_funcs.refine_peaks_minima(peaks_refined, willfunc)
+    dt_wc, dt_wc_inds, lon_wc_old, lat_wc_old = center_funcs.peaks_wc(peaks_refined, approaches, hdobs.lat.values, hdobs.lon.values, wdir_rel, hdobs.dt)
+
+    if len(dt_wc) > 1:
+        # check pressure and height vals
+        hdobs_p = np.round(hdobs.p[dt_wc_inds]/50)*50
+        if len(np.unique(hdobs_p)) == 1:
+            lower_ind = np.argmin(hdobs.hgt[dt_wc_inds])
+            lon_wc = lon_wc_old[dt_wc_inds[lower_ind]]
+            lat_wc = lat_wc_old[dt_wc_inds[lower_ind]]
+        else:
+            lower_ind = np.argmin(hdobs.hgt[dt_wc_inds])
+            lon_wc = lon_wc_old[dt_wc_inds[lower_ind]]
+            lat_wc = lat_wc_old[dt_wc_inds[lower_ind]]
+            print('centers greater than 50 hPa apart, revisit algoritm')
+            print(hdobs.p[dt_wc_inds])
+            print(hdobs.hgt[dt_wc_inds])
+    else:
+        lon_wc = lon_wc_old[dt_wc_inds[0]]
+        lat_wc = lat_wc_old[dt_wc_inds[0]]
+
+    return(lat_wc, lon_wc, dt_wc)
 
 def read_hdob_file(f):
     

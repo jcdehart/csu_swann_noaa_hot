@@ -114,16 +114,8 @@ print('avg p: '+str(hdobs.p.mean()))
 print('min p: '+str(hdobs.p.min()))
 print('max p: '+str(hdobs.p.max()))
 
-peaks, properties, willfunc, wdir_rel = center_funcs.find_peaks(hdobs.wsp.values, hdobs.wdir.values, hdobs.dval.values, 0, 0) # change u_tc/v_tc?????
-peaks_refined = peaks.astype(int)
-window = 50
-approaches = len(peaks)
-peaks_refined = center_funcs.refine_peaks_minima(peaks_refined, willfunc)
-dt_wc, lon_wc_old, lat_wc_old = center_funcs.peaks_wc(peaks_refined, approaches, hdobs.lat.values, hdobs.lon.values, wdir_rel, hdobs.dt)
-
-# may have error in center finding code... ******* ask Chris
-lon_wc = hdobs.lon.iloc[dt_wc[0]]
-lat_wc = hdobs.lat.iloc[dt_wc[0]]
+# run Chris's Willoughby-Chelmow algorithm
+lat_wc, lon_wc, dt_wc = hot_calc_centers.run_wc(hdobs)
 
 print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc))
 print(dt_wc)

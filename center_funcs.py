@@ -197,12 +197,13 @@ def peaks_wc(peaks_refined, approaches, lat_f, lon_f, wdir_rel, dt_f):
         imin = np.argmin(errorl)
         #print(imin)
         #print(errorl)
-        dt_wc = np.append(dt_wc, dtsub.iloc[imin])
+        dt_wc_inds = np.append(dt_wc)
+        dt_wc = np.append(dtsub.iloc[imin])
 	
         lon_wc = np.append(lon_wc, rellon)
         lat_wc = np.append(lat_wc, rellat)
 
-    return dt_wc, lon_wc, lat_wc
+    return dt_wc, dt_wc_inds, lon_wc, lat_wc
 
 
 def read_flight_plus(file_in):
