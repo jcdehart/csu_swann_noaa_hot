@@ -106,9 +106,9 @@ os.system('for i in '+sam_ingest_dir+'/*.txt; do mv "$i" "${i%.txt}.hdob"; done'
 # read HDOBS
 hdobs, mission = hot_calc_centers.read_hdobs('KWBC', storm_name_2,'SAMURAI', leg_start, leg_end)
 
-print('avg, min, max altitude (km): '+str(hdobs.hgt.mean().round()/1000.)+', '+str(np.round(hdobs.hgt.min())/1000.)+', '+str(np.round(hdobs.hgt.max())/1000.))
+print('avg, min, max altitude (km): '+str(np.round(hdobs.hgt.mean())/1000.)+', '+str(np.round(hdobs.hgt.min())/1000.)+', '+str(np.round(hdobs.hgt.max())/1000.))
 
-print('avg, min, max p: '+str(hdobs.p.mean().round())+', '+str(np.round(hdobs.p.min()))+', '+str(np.round(hdobs.p.max())))
+print('avg, min, max p: '+str(np.round(hdobs.p.mean()))+', '+str(np.round(hdobs.p.min()))+', '+str(np.round(hdobs.p.max())))
 
 # run Chris's Willoughby-Chelmow algorithm
 lat_wc, lon_wc, dt_wc, prominent = hot_calc_centers.run_wc(hdobs)
