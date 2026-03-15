@@ -149,8 +149,8 @@ def run_wc(hdobs):
             print(hdobs.p[dt_wc_inds])
             print(hdobs.hgt[dt_wc_inds])
     else:
-        lon_wc = lon_wc_old[dt_wc_inds[0]]
-        lat_wc = lat_wc_old[dt_wc_inds[0]]
+        lon_wc = lon_wc_old
+        lat_wc = lat_wc_old
 
     return(lat_wc, lon_wc, dt_wc)
 
