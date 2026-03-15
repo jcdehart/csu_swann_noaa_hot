@@ -113,13 +113,9 @@ if af == True:
 elif af == False:
     hdobs, mission = hot_calc_centers.read_hdobs('KWBC', storm_name_2,'HDOBS', leg_start, leg_end)
 
-print('avg altitude: '+str(hdobs.hgt.mean()))
-print('min altitude: '+str(hdobs.hgt.min()))
-print('max altitude: '+str(hdobs.hgt.max()))
+print('avg, min, max altitude (km): '+str(hdobs.hgt.mean().round()/1000.)+', '+str(hdobs.hgt.min().round()/1000.)+', '+str(hdobs.hgt.max().round()/1000.))
 
-print('avg p: '+str(hdobs.p.mean()))
-print('min p: '+str(hdobs.p.min()))
-print('max p: '+str(hdobs.p.max()))
+print('avg, min, max p: '+str(hdobs.p.mean().round())+', '+str(hdobs.p.min().round())+', '+str(hdobs.p.max().round()))
 
 # run Chris's Willoughby-Chelmow algorithm
 lat_wc, lon_wc, dt_wc, prominent = hot_calc_centers.run_wc(hdobs)

@@ -106,23 +106,27 @@ os.system('for i in '+sam_ingest_dir+'/*.txt; do mv "$i" "${i%.txt}.hdob"; done'
 # read HDOBS
 hdobs, mission = hot_calc_centers.read_hdobs('KWBC', storm_name_2,'SAMURAI', leg_start, leg_end)
 
-print('avg altitude: '+str(hdobs.hgt.mean()))
-print('min altitude: '+str(hdobs.hgt.min()))
-print('max altitude: '+str(hdobs.hgt.max()))
+print('avg, min, max altitude (km): '+str(hdobs.hgt.mean().round()/1000.)+', '+str(hdobs.hgt.min().round()/1000.)+', '+str(hdobs.hgt.max().round()/1000.))
 
-print('avg p: '+str(hdobs.p.mean()))
-print('min p: '+str(hdobs.p.min()))
-print('max p: '+str(hdobs.p.max()))
+print('avg, min, max p: '+str(hdobs.p.mean().round())+', '+str(hdobs.p.min().round())+', '+str(hdobs.p.max().round()))
 
 # run Chris's Willoughby-Chelmow algorithm
 lat_wc, lon_wc, dt_wc, prominent = hot_calc_centers.run_wc(hdobs)
 
 print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc)+', time: '+dt_wc[0].strftime('%Y%m%d%H%M'))
 
-if prominent == True:
+# use this in final comparison with objective center
+wc_good = True
+
+if (prominent == True) & (hdobs.dt.diff().max() < pd.Timedelta(10,'min')):
     print('using W-C center')
     storm_lon = lon_wc
     storm_lat = lat_wc
+# elif (prominent == True) & (hdobs.dt.diff().max() >= pd.Timedelta(10,'min')):
+#     print('HDOBs gap (>10 min), using a-deck center')
+#     storm_lon = storm_lon_2
+#     storm_lat = storm_lat_2
+#     wc_good = False
 elif (prominent == False) & (hdobs.dt.diff().max() < pd.Timedelta(10,'min')):
     print('no prominent peaks, no HDOBs gap (>10 min), using W-C center')
     storm_lon = lon_wc
@@ -131,6 +135,7 @@ elif (prominent == False) & (hdobs.dt.diff().max() >= pd.Timedelta(10,'min')):
     print('no prominent peaks, HDOBs gap (>10 min), using a-deck center')
     storm_lon = storm_lon_2
     storm_lat = storm_lat_2
+    wc_good = False
 
 # keeping averaging in case we want it in the future
 #print('averaging all 3 centers')
@@ -223,13 +228,13 @@ ncfile_cart = Dataset(cart_file)
 sam_lon_tmp = np.interp(xc_avg, ncfile_cart['x'][:].data, ncfile_cart['longitude'][:].data)
 sam_lat_tmp = np.interp(yc_avg, ncfile_cart['y'][:].data, ncfile_cart['latitude'][:].data)
 
-# check for distance from W-C center *** fix later???
-if (np.abs(sam_lon_tmp - lon_wc) > 0.4) | (np.abs(sam_lat_tmp - lat_wc) > 0.4):
-    print('objective center too far from W-C, defaulting to W-C center')
+# check for distance from W-C center *** fix later??? *******
+if ((np.abs(sam_lon_tmp - lon_wc) > 0.4) | (np.abs(sam_lat_tmp - lat_wc) > 0.4)) & wc_good:
+    print('objective center too far from W-C, W-C good, defaulting to W-C center')
     sam_lon = lon_wc
     sam_lat = lat_wc
 else:
-    print('objective center seems reasonable')
+    print('objective center seems reasonable or W-C bad')
     sam_lon = sam_lon_tmp
     sam_lat = sam_lat_tmp
 
