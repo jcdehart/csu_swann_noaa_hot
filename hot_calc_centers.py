@@ -126,7 +126,7 @@ def run_wc(hdobs):
     import center_funcs
     import numpy as np
 
-    peaks, properties, willfunc, wdir_rel = center_funcs.find_peaks(hdobs.wsp.values, hdobs.wdir.values, hdobs.dval.values, 0, 0) # change u_tc/v_tc?????
+    peaks, properties, willfunc, wdir_rel, prominent = center_funcs.find_peaks(hdobs.wsp.values, hdobs.wdir.values, hdobs.dval.values, 0, 0) # change u_tc/v_tc?????
     peaks_refined = peaks.astype(int)
     window = 50
     approaches = len(peaks)
@@ -152,7 +152,7 @@ def run_wc(hdobs):
         lon_wc = lon_wc_old
         lat_wc = lat_wc_old
 
-    return(lat_wc, lon_wc, dt_wc)
+    return(lat_wc, lon_wc, dt_wc, prominent)
 
 def read_hdob_file(f):
     

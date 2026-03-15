@@ -122,15 +122,9 @@ print('min p: '+str(hdobs.p.min()))
 print('max p: '+str(hdobs.p.max()))
 
 # run Chris's Willoughby-Chelmow algorithm
-lat_wc, lon_wc, dt_wc = hot_calc_centers.run_wc(hdobs)
+lat_wc, lon_wc, dt_wc, prominent = hot_calc_centers.run_wc(hdobs)
 
-print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc))
-print(dt_wc)
-
-#print('averaging all 3 centers')
-
-# perhaps have different weights based on tcvitals intensity??? ********
-wgt = np.array([1, 1, 5])
+print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc)+', time: '+dt_wc.strftime('%Y%m%d%H%M'))
 
 # use VDM lat/lon if exists, or W-C (**** might avg later*****)
 if (args.VDMLON != 0.0) & (args.VDMLAT != 0.0):
@@ -138,11 +132,24 @@ if (args.VDMLON != 0.0) & (args.VDMLAT != 0.0):
     storm_lat = args.VDMLAT
     print('Using VDM center')
 else:
-    storm_lon = lon_wc
-    storm_lat = lat_wc
-    print('Using W-C center')
-    #storm_lon = np.average(np.array([lon_wc,storm_lon_1,storm_lon_2]),weights=wgt)
-    #storm_lat = np.average(np.array([lat_wc,storm_lat_1,storm_lat_2]),weights=wgt)
+    if prominent == True:
+        print('using W-C center')
+        storm_lon = lon_wc
+        storm_lat = lat_wc
+    elif (prominent == False) & (hdobs.dt.diff().max() < pd.Timedelta(10,'min')):
+        print('no prominent peaks, no HDOBs gap (>10 min), using W-C center')
+        storm_lon = lon_wc
+        storm_lat = lat_wc
+    elif (prominent == False) & (hdobs.dt.diff().max() >= pd.Timedelta(10,'min')):
+        print('no prominent peaks, HDOBs gap (>10 min), using a-deck center')
+        storm_lon = storm_lon_2
+        storm_lat = storm_lat_2
+
+# keeping averaging in case we want it in the future
+#print('averaging all 3 centers')
+# wgt = np.array([1, 1, 3])
+#storm_lon = np.average(np.array([lon_wc,storm_lon_1,storm_lon_2]),weights=wgt)
+#storm_lat = np.average(np.array([lat_wc,storm_lat_1,storm_lat_2]),weights=wgt)
 
 u_motion = np.nanmean(np.array([u_motion_1,u_motion_2]))
 v_motion = np.nanmean(np.array([v_motion_1,v_motion_2]))
