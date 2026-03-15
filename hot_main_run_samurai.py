@@ -117,7 +117,7 @@ print('max p: '+str(hdobs.p.max()))
 # run Chris's Willoughby-Chelmow algorithm
 lat_wc, lon_wc, dt_wc, prominent = hot_calc_centers.run_wc(hdobs)
 
-print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc)+', time: '+dt_wc.strftime('%Y%m%d%H%M'))
+print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc)+', time: '+dt_wc[0].strftime('%Y%m%d%H%M'))
 
 if prominent == True:
     print('using W-C center')
