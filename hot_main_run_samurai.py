@@ -233,10 +233,17 @@ if ((np.abs(sam_lon_tmp - lon_wc) > 0.4) | (np.abs(sam_lat_tmp - lat_wc) > 0.4))
     print('objective center too far from W-C, W-C good, defaulting to W-C center')
     sam_lon = lon_wc
     sam_lat = lat_wc
+    xc = np.interp(lon_wc, ncfile_cart['longitude'][:].data, ncfile_cart['x'][:].data)
+    yc = np.interp(lat_wc, ncfile_cart['latitude'][:].data, ncfile_cart['y'][:].data)
+    wccen = True # set this to calc rmw later
 else:
     print('objective center seems reasonable or W-C bad')
     sam_lon = sam_lon_tmp
     sam_lat = sam_lat_tmp
+    xc = xc_avg
+    yc = yc_avg
+    wc_cen = False
+
 
 print('samurai center lat: '+str(sam_lat)+', center lon: '+str(sam_lon))
 
@@ -271,7 +278,7 @@ alt_lev = (alt == alt_plane)
 # cartesian file only 
 x = ncfile['x'][:].data
 y = ncfile['y'][:].data
-X, Y = np.meshgrid(x - xc_avg,y - yc_avg,indexing='xy') 
+X, Y = np.meshgrid(x - xc, y - yc, indexing='xy') 
 lon_nc = ncfile['longitude'][:].data
 lat_nc = ncfile['latitude'][:].data
 u_storm = np.squeeze(ncfile['U'][:].data[0,alt_lev,:,:])
@@ -288,7 +295,12 @@ th[th < 0] = th[th < 0] + 360 # degrees
 u_earth = u_storm + u_motion # u and v motion from tcvitals file 
 v_earth = v_storm + v_motion
 wspd_earth = np.sqrt(u_earth**2 + v_earth**2)
-sam_rmw = rmw_avg
+
+# calculate rmw from max SAMURAI point if reverted to W-C center above (testing lol)
+if wccen == True:
+    sam_rmw = np.nanmin(rd[wspd_earth == np.nanmax(wspd_earth)])
+elif wccen == False:
+    sam_rmw = rmw_avg
 
 # compare RMW values ( ***edit for coverage in samurai analysis*** )
 print('\n')
