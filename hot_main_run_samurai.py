@@ -241,7 +241,7 @@ else:
     sam_lat = sam_lat_tmp
     xc = xc_avg
     yc = yc_avg
-    wc_cen = False
+    wccen = False
 
 
 print('samurai center lat: '+str(sam_lat)+', center lon: '+str(sam_lon))
