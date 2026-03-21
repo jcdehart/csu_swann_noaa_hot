@@ -290,6 +290,9 @@ echo_edges[3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane > 0) | (y_
 
 vmax_table = [[hdobs_fl_vmax],[swann_hdobs_vmax]]
 
+### EDGES RIGHT NOW IN KM, FIX OR CONVERT TO NM
+# affect save_txt and plot_image_4pan (and SAM code)
+
 # save text file
 save_files.save_txt(storm_lat, storm_lon, hdobs_fl_vmax, swann_hdobs_vmax, swann_rmw, simp_frank, radii_vals_nm, echo_edges,
                     inDir, args, analysis_time, 'HDOBS')
