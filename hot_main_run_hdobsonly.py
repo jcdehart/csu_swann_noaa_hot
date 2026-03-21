@@ -18,7 +18,6 @@ import model_utils
 from geo_conversion import xy
 import hot_grab_files
 import hot_calc_centers
-import center_funcs
 import hot_prep_data
 import save_files
 

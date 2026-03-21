@@ -17,10 +17,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from tensorflow.keras.models import model_from_json
 import model_utils
 from samurai_gen_file import make_cen_file, modify_param_file
-from geo_conversion import latlon, xy
+from geo_conversion import xy
 import hot_grab_files
 import hot_calc_centers
-import center_funcs
 import hot_prep_data
 import save_files
 
@@ -113,7 +112,7 @@ print('avg, min, max p: '+str(np.round(hdobs.p.mean()))+', '+str(np.round(hdobs.
 # run Chris's Willoughby-Chelmow algorithm
 lat_wc, lon_wc, dt_wc, prominent = hot_calc_centers.run_wc(hdobs)
 
-print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc)+', time: '+dt_wc[0].strftime('%Y%m%d%H%M'))
+print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc)+', time: '+dt_wc.strftime('%Y%m%d%H%M'))
 
 # use this in final comparison with objective center
 wc_good = True
