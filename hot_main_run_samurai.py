@@ -30,6 +30,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("STORM", help="storm name (all caps)", type=str)
 parser.add_argument("STARTTIME", help="samurai start datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("ENDTIME", help="samurai end datetime (YYYYMMDDHHMM)", type=str)
+parser.add_argument("--VDMLAT", default="0.0", help="VDM center lat", type=float)
+parser.add_argument("--VDMLON", default="0.0", help="VDM center lon", type=float)
 parser.add_argument("--CENFN", default="gfs.tXXz.syndata.tcvitals.tm00", help="TC Vitals filename", type=str)
 parser.add_argument("--CENPATH", default="./ingest_dir/center_data", help="TC Vitals directory", type=str)
 parser.add_argument("--CENTYPE", default="tcvitals", help="center type (tcvitals or fplus)", type=str)
@@ -116,25 +118,34 @@ print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc)+', time: '+dt_
 
 # use this in final comparison with objective center
 wc_good = True
+vdm_good = False
 
-if (prominent == True) & (hdobs.dt.diff().max() < pd.Timedelta(10,'min')):
-    print('using W-C center')
-    storm_lon = lon_wc
-    storm_lat = lat_wc
-# elif (prominent == True) & (hdobs.dt.diff().max() >= pd.Timedelta(10,'min')):
-#     print('HDOBs gap (>10 min), using a-deck center')
-#     storm_lon = storm_lon_2
-#     storm_lat = storm_lat_2
-#     wc_good = False
-elif (prominent == False) & (hdobs.dt.diff().max() < pd.Timedelta(10,'min')):
-    print('no prominent peaks, no HDOBs gap (>10 min), using W-C center')
-    storm_lon = lon_wc
-    storm_lat = lat_wc
-elif (prominent == False) & (hdobs.dt.diff().max() >= pd.Timedelta(10,'min')):
-    print('no prominent peaks, HDOBs gap (>10 min), using a-deck center')
-    storm_lon = storm_lon_2
-    storm_lat = storm_lat_2
-    wc_good = False
+# use VDM lat/lon if exists, or W-C (**** might avg later*****)
+if (args.VDMLON != 0.0) & (args.VDMLAT != 0.0):
+    storm_lon = args.VDMLON
+    storm_lat = args.VDMLAT
+    print('Using VDM center')
+    wc_good = False # maybe add similar param for VDM? would assume vdm is good though....
+    vdm_good = True # might include a check for these cases...
+else:
+    if (prominent == True) & (hdobs.dt.diff().max() < pd.Timedelta(10,'min')):
+        print('using W-C center')
+        storm_lon = lon_wc
+        storm_lat = lat_wc
+    # elif (prominent == True) & (hdobs.dt.diff().max() >= pd.Timedelta(10,'min')):
+    #     print('HDOBs gap (>10 min), using a-deck center')
+    #     storm_lon = storm_lon_2
+    #     storm_lat = storm_lat_2
+    #     wc_good = False
+    elif (prominent == False) & (hdobs.dt.diff().max() < pd.Timedelta(10,'min')):
+        print('no prominent peaks, no HDOBs gap (>10 min), using W-C center')
+        storm_lon = lon_wc
+        storm_lat = lat_wc
+    elif (prominent == False) & (hdobs.dt.diff().max() >= pd.Timedelta(10,'min')):
+        print('no prominent peaks, HDOBs gap (>10 min), using a-deck center')
+        storm_lon = storm_lon_2
+        storm_lat = storm_lat_2
+        wc_good = False
 
 # keeping averaging in case we want it in the future
 #print('averaging all 3 centers')
