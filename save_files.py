@@ -143,7 +143,8 @@ def plot_image_2pan(x_plane, y_plane, sfc_wind_pred, hdobs,
     gs = fig.add_gridspec(1,3)
     f_ax4 = fig.add_subplot(gs[0, :-1])
     f_ax5 = fig.add_subplot(gs[0, -1])
-    f_ax4.plot(hdobs.dt, hdobs.sfmr, 'k',hdobs.dt, hdobs.wsp, 'r')
+    f_ax4.plot(hdobs.dt, hdobs.sfmr, c='dimgrey')
+    f_ax4.plot(hdobs.dt, hdobs.wsp, 'r')
     f_ax4.plot(hdobs.dt, sfc_wind_pred*1.94, color='#1E4D2B')
     f_ax4.plot(hdobs.dt.values[0], hdobs.wsp.values[0], 'kx') # flight start
     f_ax4.plot(hdobs.dt.values[-1], hdobs.wsp.values[-1], 'ko') # flight end
