@@ -119,7 +119,7 @@ print('avg, min, max p: '+str(np.round(hdobs.p.mean()))+', '+str(np.round(hdobs.
 # run Chris's Willoughby-Chelmow algorithm
 lat_wc, lon_wc, dt_wc, prominent = hot_calc_centers.run_wc(hdobs)
 
-print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc)+', time: '+dt_wc[0].strftime('%Y%m%d%H%M'))
+print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc)+', time: '+dt_wc.strftime('%Y%m%d%H%M'))
 
 # use VDM lat/lon if exists, or W-C (**** might avg later*****)
 if (args.VDMLON != 0.0) & (args.VDMLAT != 0.0):
