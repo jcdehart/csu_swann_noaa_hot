@@ -45,8 +45,6 @@ else:
 
 print(af)
 
-ml_ver = 'FRED'
-
 #%% set up dirs
 # local testing
 inDir = '/bell-scratch/jcdehart/hot_operational/csu_swann_noaa_hot/'
@@ -60,8 +58,6 @@ ml_dir = ml_dir_base + 'Current_HOT_Model/'
 ml_file = 'HS24_SCL_2DNN_model_v2.h5'
 json_fn = 'HS24_SCL_2DNN_model_v2.json'
 
-
-#samurai_time = pd.to_datetime(args.ANALYSISTIME,format='%Y%m%d%H%M',utc=True)
 leg_start = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True)
 leg_end = pd.to_datetime(args.ENDTIME,format='%Y%m%d%H%M',utc=True)
 samurai_time = leg_start + ((leg_end-leg_start)/2).round('min')
@@ -81,9 +77,6 @@ print('########')
 print('center stats from tcvitals and adeck:')
 print([storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motion, u_motion_1, v_motion_1, storm_dir_rot])
 print([storm_lat_2, storm_lon_2, storm_intens_2, np.nan, storm_dir_2, storm_motion_2, u_motion_2, v_motion_2, storm_dir_rot_2])
-#print('using tcvitals center')
-
-# more center finding from files will go here... flight plus *********
 
 # first remove any existing files
 os.system('rm -rf '+hdobs_ingest_dir+'/*.list')

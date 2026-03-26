@@ -38,7 +38,6 @@ parser.add_argument("--CENTYPE", default="tcvitals", help="center type (tcvitals
 args = parser.parse_args()
 
 af = False
-ml_ver = 'FRED'
 
 #%% set up dirs
 inDir = '/bell-scratch/jcdehart/hot_operational/csu_swann_noaa_hot/'
@@ -72,9 +71,6 @@ print('########')
 print('center stats from tcvitals and adeck:')
 print([storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motion, u_motion_1, v_motion_1, storm_dir_rot])
 print([storm_lat_2, storm_lon_2, storm_intens_2, np.nan, storm_dir_2, storm_motion_2, u_motion_2, v_motion_2, storm_dir_rot_2])
-
-# more center finding from files will go here... flight plus *********
-
 
 # move all necessary files to ./samurai_input
 # **** for now specifying whether AF only or not ***** UPDATE IN FUTURE
