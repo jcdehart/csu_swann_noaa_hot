@@ -15,8 +15,8 @@ for i in /bell-scratch/jcdehart/hot_operational/realtime/ingest_dir/center_data/
 
     set $outputString
 
-    echo "python hot_main_run_hdobsonly.py $1 $2 $3 A --VDMLAT $4 --VDMLON $5"
+    echo "python hot_main_run_hdobsonly.py $1 $2 $3 A --VDMLAT $4 --VDMLON $5 > ./output_files/$1_$2.log"
 
-    python hot_main_run_hdobsonly.py $1 $2 $3 A --VDMLAT $4 --VDMLON $5
+    python hot_main_run_hdobsonly.py $1 $2 $3 A --VDMLAT $4 --VDMLON $5 > ./output_files/$1_$2.log
     
 done
