@@ -66,7 +66,6 @@ def read_vdm(file, mode):
     vdm_flight = vdm[24]
     
     ## get flight, storm names
-    
     header = vdm_header.split()
     flight = vdm_flight.split()
     storm_code = header[3]
@@ -74,7 +73,6 @@ def read_vdm(file, mode):
     storm_name = flight[3]
     
     ## extract center time
-    
     ddhhmmss = re.sub('[^0-9]','', vdm_time)
     
     # grab yeah, month info from filename
@@ -371,8 +369,6 @@ def center_tcvitals(args):
     tc_vital = []
     tcvitals_path = args.CENPATH+'/tcvitals/'+centime_firstguess.strftime('%Y%m%d')+'/'
     tcvitals_fn = args.CENFN.replace('XX',centime_firstguess.strftime('%H'))
-    #tcvitals_path = '/bell-scratch/jcdehart/hot/JHT_Michael_Test/TC_Vitals/'
-    #tcvitals_fn = 'syndat_tcvitals.2018'i
 
     if args.STORM[0:2] == 'AL':
         basin = 'L'
@@ -416,13 +412,10 @@ def center_tcvitals(args):
 
     # grab all lines that contain storm
     searchwds = [storm_id, centime.strftime('%Y%m%d'), centime.strftime('%H%M')]
-    #searchwds = [storm_id, args.CENTIME[0:8], args.CENTIME[8:12]]
-    #searchwds = ['MICHAEL','20181010','1200']
     for line in file: 
         if all(word in line for word in searchwds):
             tc_vital.append(line)
 
-    #print(tc_vital)
 
     center_time = pd.to_datetime(searchwds[1]+searchwds[2], format='%Y%m%d%H%M', utc=True)
     
@@ -464,8 +457,6 @@ def center_adeck(args, samurai_time):
     adeck = []
     adeck_path = args.CENPATH+'/adeck/'+centime.strftime('%Y')+'/'
     adeck_fn = 'a'+args.STORM.lower()+centime.strftime('%Y')+'.dat'
-    #adeck_path = args.CENPATH+'/adeck/'+args.CENTIME[0:4]+'/'
-    #adeck_fn = 'a'+args.STORM.lower()+args.CENTIME[0:4]+'.dat'
 
     system('gunzip '+adeck_path+adeck_fn+'.gz')
     print('unzipping  '+adeck_path+adeck_fn+'.gz')
@@ -473,7 +464,6 @@ def center_adeck(args, samurai_time):
     # grab all lines that contain storm
     file = open(adeck_path+adeck_fn)
     searchwds = ['OFCL', centime.strftime('%Y%m%d%H'), '34,']
-    #searchwds = ['OFCL', args.CENTIME[0:10], '34,']
     for line in file: 
         if all(word in line for word in searchwds):
             adeck.append(line)
@@ -516,11 +506,9 @@ def center_adeck(args, samurai_time):
     df2['lon'] = df['LonE/W'].str.strip().str[:-1].astype('float')/10.
     df2.loc[df['LatN/S'].str.strip().str[-1:] == 'S','lat'] = df2.loc[df['LatN/S'].str.strip().str[-1:] == 'S','lat']*-1
     df2.loc[df['LonE/W'].str.strip().str[-1:] == 'W','lon'] = df2.loc[df['LonE/W'].str.strip().str[-1:] == 'W','lon']*-1
-    #df2['lon'][df['LonE/W'].str.strip().str[-1:] == 'W'] = df2['lon'][df['LonE/W'].str.strip().str[-1:] == 'W']*-1
 
     # add new time and sort and interpolate
     df2.loc[len(df2), 'dt'] = samurai_time
-    #print(df2)
     df2 = df2.sort_values(by=['dt']).reset_index(drop=True)
     df2['sin'] = df2['DIR'].apply(np.radians).apply(np.sin) 
     df2['cos'] = df2['DIR'].apply(np.radians).apply(np.cos) 
@@ -541,8 +529,6 @@ def center_adeck(args, samurai_time):
         df2['sin'] = df2['sin'].interpolate()   
         df2['cos'] = df2['cos'].interpolate()
         df2['DIR2'] = np.round(np.arctan2(df2['sin'],df2['cos'])*180./np.pi)
-
-    #print(df2)
 
 
     # grab index of time and needed variables

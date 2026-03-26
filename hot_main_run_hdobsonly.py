@@ -208,10 +208,8 @@ print('predicted max sfc wind: '+str(np.nanmax(sfc_wind_pred)))
 # grab RMW
 swann_rmw = rd[np.unravel_index(np.nanargmax(sfc_wind_pred),np.shape(sfc_wind_pred))]
 
-# ****** CHANGE TO JUST SPEED! ********
-# convert wind speed to u and v, assuming inflow angle is 22.6, from zhang and uhlhorn 2012, use th_r in radians
-u_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.cos(th_r) - sfc_wind_pred*np.sin(np.radians(90-22.6))*np.sin(th_r)
-v_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.sin(th_r) + sfc_wind_pred*np.sin(np.radians(90-22.6))*np.cos(th_r)
+# unit conversion
+sfc_wind_pred_ms = sfc_wind_pred*1.94 # convert to m/s
 
 #%% main code: step 4 - prep for saving files
 
@@ -252,7 +250,7 @@ print('########')
 print('save txt file, netcdf, image')
 
 # save netcdf file
-save_files.save_1d_netcdf(hdobs, u_nc, v_nc, samurai_time, args)
+save_files.save_1d_netcdf(hdobs, sfc_wind_pred_ms, samurai_time, args)
 
 x_plot, y_plot = np.meshgrid(np.arange(np.nanmin(x_plane),np.nanmax(x_plane)), 
     np.arange(np.nanmin(y_plane),np.nanmax(y_plane)))

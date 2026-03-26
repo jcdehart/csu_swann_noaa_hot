@@ -25,7 +25,7 @@ def save_txt(lat, lon, fl_vmax, swann_vmax, rmw, simp_frank, radii, edges, inDir
         f.writelines(lines)
         f.close()
 
-def save_1d_netcdf(hdobs, u_nc, v_nc, samurai_time, args):
+def save_1d_netcdf(hdobs, wsp_nc, samurai_time, args):
 
     # save output data as NetCDF (adapted from MetPy documentation)
 
@@ -54,23 +54,19 @@ def save_1d_netcdf(hdobs, u_nc, v_nc, samurai_time, args):
     nctime.units = 'seconds since 1970-01-01'
     nctime.long_name = 'time'
     # Define a 3D variable to hold the data
-    ncu = ncfile_sfc.createVariable('u_wind',np.float64,('time')) # note: unlimited dimension is leftmost
-    ncu.units = 'm s-1' 
-    ncu.standard_name = 'eastward_wind' # this is a CF standard name
-    ncu.long_name = 'U component of the predicted surface wind'
-    ncv = ncfile_sfc.createVariable('v_wind',np.float64,('time')) # note: unlimited dimension is leftmost
-    ncv.units = 'm s-1' 
-    ncv.standard_name = 'northward_wind' # this is a CF standard name
-    ncv.long_name = 'V component of the predicted surface wind'
+    ncwspd = ncfile_sfc.createVariable('u_wind',np.float64,('time')) # note: unlimited dimension is leftmost
+    ncwspd.units = 'm s-1' 
+    ncwspd.standard_name = 'wind_speed' # this is a CF standard name
+    ncwspd.long_name = 'U component of the predicted surface wind'
 
     # save data to arrays 
     nclat[:] = hdobs.lat.values
     nclon[:] = hdobs.lon.values
     nctime[:] = (hdobs.dt  - pd.Timestamp("1970-01-01", tz="UTC")) // pd.Timedelta('1s')
-    ncu[:] = u_nc
-    ncv[:] = v_nc
+    ncwspd[:] = wsp_nc
         
     ncfile_sfc.close()
+    
 
 def save_2d_netcdf(lat_nc, lon_nc, u_nc, v_nc, samurai_time, analysis_time, args):
 
