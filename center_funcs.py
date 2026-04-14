@@ -5,9 +5,8 @@
 # Import modules | define routine
 from netCDF4 import Dataset
 import numpy as np
-import time, sys
 from scipy import signal, interpolate
-from math import radians, degrees, sin, cos, asin, acos, sqrt
+from math import radians, sin, cos, acos
 import pandas as pd
 
 #### functions
@@ -54,8 +53,11 @@ def find_peaks(wspd_f, wdir_f, dval_f, u_tc, v_tc):
         smoothed = savgol_filter(willfunc, 5, 2, mode='nearest')
         peaks = np.array([np.nanargmin(smoothed)])
         print('no promininent peaks identified. using smoothed mininmum.')
+        prominent = False
+    else:
+        prominent = True
 
-    return peaks, properties, willfunc, wdir_rel
+    return peaks, properties, willfunc, wdir_rel, prominent
 
 
 def refine_peaks_nhc(peaks, approaches, dt_f, latsub, lonsub, date_bt, lat_bt, lon_bt):
@@ -191,12 +193,8 @@ def peaks_wc(peaks_refined, approaches, lat_f, lon_f, wdir_rel, dt_f):
         difflon = lonsub - rellon
         difflat = latsub - rellat
         errorl = np.sqrt(difflon * difflon + difflat * difflat)
-        #print(b0)
-        #print(b1)
-        #print(m00)
+
         imin = np.argmin(errorl)
-        #print(imin)
-        #print(errorl)
         dt_wc = np.append(dt_wc, dtsub.iloc[imin])
 	
         lon_wc = np.append(lon_wc, rellon)
@@ -216,17 +214,11 @@ def read_flight_plus(file_in):
     # Read in flight-level data
     f = Dataset(file_in, 'r', format = 'NETCDF4')
     time_f = f.variables['FL_PLATFORM_yyyymmddhhmmss'][:]
-    #time_f = f.variables['all_yyyymmddhhmmss'][:]
     wspd_f = np.array(f.variables['FL_PLATFORM_wind_speed_30s_average'][:]) # m/s
-    #wspd_f = np.array(f.variables['all_wind_speed'][:]) # m/s
     wdir_f = np.array(f.variables['FL_PLATFORM_wind_direction'][:]) # degrees
-    #wdir_f = np.array(f.variables['all_wind_direction'][:]) # degrees
     dval_f = np.array(f.variables['FL_PLATFORM_deviation_value'][:]) # m
-    #dval_f = np.array(f.variables['all_deviation_value'][:]) # m
     lat_f = np.array(f.variables['FL_PLATFORM_latitude'][:])
-    #lat_f = np.array(f.variables['all_platform_latitude'][:])
     lon_f = np.array(f.variables['FL_PLATFORM_longitude'][:])
-    #lon_f = np.array(f.variables['all_platform_longitude'][:])
     f.close()
     ind = np.where(wspd_f >= 0)
     time_f = time_f[ind]

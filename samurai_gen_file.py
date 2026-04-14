@@ -32,8 +32,6 @@ def make_cen_file(ref_time, sam_start, sam_end, lat, lon, u, v, outDir):
     init_time = ref_time
     start_time = sam_start
     end_time = sam_end
-    #start_time = analysis_time - pd.to_timedelta(span, unit='m')
-    #end_time = analysis_time + pd.to_timedelta(span, unit='m')
 
     # set up date range array, beginning depends on when earliest time is
     if (init_time < start_time):
@@ -80,7 +78,7 @@ def make_cen_file(ref_time, sam_start, sam_end, lat, lon, u, v, outDir):
     column_titles = ['cen_time_sam','lat','lon','v','u']
     cen_time_final = cen_time_sm.reindex(columns = column_titles)
 
-    print(cen_time_final)
+    # print(cen_time_final)
 
     # write file
     cen_file_name = start_time.strftime('%Y%m%d') + '.cen'

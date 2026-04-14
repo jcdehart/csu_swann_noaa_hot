@@ -10,62 +10,18 @@ Created on Fri Jul 21 13:22:00 2023
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 import argparse
 import os
-import glob
-#from pyproj import Geod
-from tensorflow.keras.models import Sequential, model_from_json
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+from tensorflow.keras.models import model_from_json
 import model_utils
-#import hot_cen_file
 from samurai_gen_file import make_cen_file, modify_param_file
+from geo_conversion import xy
 import hot_grab_files
 import hot_calc_centers
-import center_funcs
 import hot_prep_data
-from matplotlib.ticker import AutoMinorLocator
-import matplotlib.colors as colors
-import matplotlib.dates as mdates
-from matplotlib.lines import Line2D
-from matplotlib.font_manager import FontProperties
-
-
-plt.rcParams.update({'mathtext.default':  'regular' })
-
-def latlon(cenlon, cenlat, dom_x, dom_y):
-    latrad = np.radians(cenlat)
-
-    # do math
-    fac_lat = 111.13209 - 0.56605 * np.cos(2.0 * latrad) + 0.00012 * np.cos(4.0 * latrad) - 0.000002 * np.cos(6.0 * latrad)
-    fac_lon = 111.41513 * np.cos(latrad) - 0.09455 * np.cos(3.0 * latrad) + 0.00012 * np.cos(5.0 * latrad)
-    dom_lon = cenlon + (dom_x)/fac_lon # distance in km
-    dom_lat = cenlat + (dom_y)/fac_lat
-
-    return(dom_lon, dom_lat)
-
-
-def xy(lat, lon, lat0, lon0):
-    # Approximate radius of earth in km
-    R = 6373.0
-    lat_plane = np.radians(lat)
-    lon_plane = np.radians(lon)
-    lat_cen = np.radians(lat0)
-    lon_cen = np.radians(lon0)
-    #dlon = lon_cen - lon_plane
-    #dlat = lat_cen - lat_plane
-    dlon = lon_plane - lon_cen
-    dlat = lat_plane - lat_cen
-    #a = np.sin(dlat / 2)**2 + np.cos(lat_plane) * np.cos(lat_cen) * np.sin(dlon / 2)**2
-    a = np.sin(dlat / 2)**2 + np.cos(lat_cen) * np.cos(lat_plane) * np.sin(dlon / 2)**2
-    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
-    distance = R * c
-    #bearing = np.arctan2(np.sin(lon_cen-lon_plane)*np.cos(lat_cen), np.cos(lat_plane)*np.sin(lat_cen)-np.sin(lat_plane)*np.cos(lat_cen)*np.cos(lon_cen-lon_plane))
-    bearing = np.arctan2(np.sin(lon_plane-lon_cen)*np.cos(lat_plane), np.cos(lat_cen)*np.sin(lat_plane)-np.sin(lat_cen)*np.cos(lat_plane)*np.cos(lon_plane-lon_cen))
-    #bearing is in north-facing coords...
-    x = distance*np.cos(-1*(bearing-(np.pi/2)))
-    y = distance*np.sin(-1*(bearing-(np.pi/2)))
-    return(x,y)
+import save_files
 
 #%% main code: step 1 - make center file from tcvitals of flight+ file (hot_calc_centers)
 
@@ -74,18 +30,17 @@ parser = argparse.ArgumentParser()
 parser.add_argument("STORM", help="storm name (all caps)", type=str)
 parser.add_argument("STARTTIME", help="samurai start datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("ENDTIME", help="samurai end datetime (YYYYMMDDHHMM)", type=str)
+parser.add_argument("--VDMLAT", default="0.0", help="VDM center lat", type=float)
+parser.add_argument("--VDMLON", default="0.0", help="VDM center lon", type=float)
 parser.add_argument("--CENFN", default="gfs.tXXz.syndata.tcvitals.tm00", help="TC Vitals filename", type=str)
 parser.add_argument("--CENPATH", default="./ingest_dir/center_data", help="TC Vitals directory", type=str)
 parser.add_argument("--CENTYPE", default="tcvitals", help="center type (tcvitals or fplus)", type=str)
 args = parser.parse_args()
 
 af = False
-#alt_plane = 1.5
-#alt_plane = 3.0
-ml_ver = 'FRED'
 
 #%% set up dirs
-inDir = '/bell-scratch/jcdehart/hot_operational/retrospective_testing/'
+inDir = '/bell-scratch/jcdehart/hot_operational/csu_swann_noaa_hot/'
 data_dir = inDir+'ingest_dir/'
 ml_dir_base = inDir+'ML_models/'
 sam_dir_base = inDir+'samurai_parent/'
@@ -117,9 +72,6 @@ print('center stats from tcvitals and adeck:')
 print([storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motion, u_motion_1, v_motion_1, storm_dir_rot])
 print([storm_lat_2, storm_lon_2, storm_intens_2, np.nan, storm_dir_2, storm_motion_2, u_motion_2, v_motion_2, storm_dir_rot_2])
 
-# more center finding from files will go here... flight plus *********
-
-
 # move all necessary files to ./samurai_input
 # **** for now specifying whether AF only or not ***** UPDATE IN FUTURE
 
@@ -149,39 +101,54 @@ if len(hdobs_sm.mission.unique()) > 1:
 os.system('for i in '+sam_ingest_dir+'/*.txt; do mv "$i" "${i%.txt}.hdob"; done')
 
 # read HDOBS
-hdobs = hot_calc_centers.read_hdobs('KWBC', storm_name_2,'SAMURAI', leg_start, leg_end)
+hdobs, mission = hot_calc_centers.read_hdobs('KWBC', storm_name_2,'SAMURAI', leg_start, leg_end)
 
-print('avg altitude: '+str(hdobs.hgt.mean()))
-print('min altitude: '+str(hdobs.hgt.min()))
-print('max altitude: '+str(hdobs.hgt.max()))
+print('avg, min, max altitude (km): '+str(np.round(hdobs.hgt.mean())/1000.)+', '+str(np.round(hdobs.hgt.min())/1000.)+', '+str(np.round(hdobs.hgt.max())/1000.))
 
-print('avg p: '+str(hdobs.p.mean()))
-print('min p: '+str(hdobs.p.min()))
-print('max p: '+str(hdobs.p.max()))
+print('avg, min, max p: '+str(np.round(hdobs.p.mean()))+', '+str(np.round(hdobs.p.min()))+', '+str(np.round(hdobs.p.max())))
 
-peaks, properties, willfunc, wdir_rel = center_funcs.find_peaks(hdobs.wsp.values, hdobs.wdir.values, hdobs.dval.values, 0, 0) # change u_tc/v_tc?????
-peaks_refined = peaks.astype(int)
-window = 50
-approaches = len(peaks)
-peaks_refined = center_funcs.refine_peaks_minima(peaks_refined, willfunc)
-dt_wc, lon_wc_old, lat_wc_old = center_funcs.peaks_wc(peaks_refined, approaches, hdobs.lat.values, hdobs.lon.values, wdir_rel, hdobs.dt)
+# run Chris's Willoughby-Chelmow algorithm
+lat_wc, lon_wc, dt_wc, prominent = hot_calc_centers.run_wc(hdobs)
 
-# may have error in center finding code... ******* ask Chris
-lon_wc = hdobs.lon.iloc[dt_wc[0]]
-lat_wc = hdobs.lat.iloc[dt_wc[0]]
+print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc)+', time: '+dt_wc.strftime('%Y%m%d%H%M'))
 
-print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc))
-print(dt_wc)
+# use this in final comparison with objective center
+wc_good = True
+vdm_good = False
 
-print('using W-C only')
+# use VDM lat/lon if exists, or W-C (**** might avg later*****)
+if (args.VDMLON != 0.0) & (args.VDMLAT != 0.0):
+    storm_lon = args.VDMLON
+    storm_lat = args.VDMLAT
+    print('Using VDM center')
+    wc_good = False # maybe add similar param for VDM? would assume vdm is good though....
+    vdm_good = True # might include a check for these cases...
+else:
+    if (prominent == True) & (hdobs.dt.diff().max() < pd.Timedelta(10,'min')):
+        print('using W-C center')
+        storm_lon = lon_wc
+        storm_lat = lat_wc
+    # elif (prominent == True) & (hdobs.dt.diff().max() >= pd.Timedelta(10,'min')):
+    #     print('HDOBs gap (>10 min), using a-deck center')
+    #     storm_lon = storm_lon_2
+    #     storm_lat = storm_lat_2
+    #     wc_good = False
+    elif (prominent == False) & (hdobs.dt.diff().max() < pd.Timedelta(10,'min')):
+        print('no prominent peaks, no HDOBs gap (>10 min), using W-C center')
+        storm_lon = lon_wc
+        storm_lat = lat_wc
+    elif (prominent == False) & (hdobs.dt.diff().max() >= pd.Timedelta(10,'min')):
+        print('no prominent peaks, HDOBs gap (>10 min), using a-deck center')
+        storm_lon = storm_lon_2
+        storm_lat = storm_lat_2
+        wc_good = False
+
+# keeping averaging in case we want it in the future
 #print('averaging all 3 centers')
-
-# perhaps have different weights based on tcvitals intensity??? ********
-wgt = np.array([1, 1, 3])
-storm_lon = lon_wc
-storm_lat = lat_wc
+# wgt = np.array([1, 1, 3])
 #storm_lon = np.average(np.array([lon_wc,storm_lon_1,storm_lon_2]),weights=wgt)
 #storm_lat = np.average(np.array([lat_wc,storm_lat_1,storm_lat_2]),weights=wgt)
+
 u_motion = np.nanmean(np.array([u_motion_1,u_motion_2]))
 v_motion = np.nanmean(np.array([v_motion_1,v_motion_2]))
 print([storm_lat, storm_lon])
@@ -267,15 +234,22 @@ ncfile_cart = Dataset(cart_file)
 sam_lon_tmp = np.interp(xc_avg, ncfile_cart['x'][:].data, ncfile_cart['longitude'][:].data)
 sam_lat_tmp = np.interp(yc_avg, ncfile_cart['y'][:].data, ncfile_cart['latitude'][:].data)
 
-# check for distance from W-C center *** fix later???
-if (np.abs(sam_lon_tmp - lon_wc) > 0.4) | (np.abs(sam_lat_tmp - lat_wc) > 0.4):
-    print('objective center too far from W-C, defaulting to W-C center')
+# check for distance from W-C center *** fix later??? *******
+if ((np.abs(sam_lon_tmp - lon_wc) > 0.4) | (np.abs(sam_lat_tmp - lat_wc) > 0.4)) & wc_good:
+    print('objective center too far from W-C, W-C good, defaulting to W-C center')
     sam_lon = lon_wc
     sam_lat = lat_wc
+    xc = np.interp(lon_wc, ncfile_cart['longitude'][:].data, ncfile_cart['x'][:].data)
+    yc = np.interp(lat_wc, ncfile_cart['latitude'][:].data, ncfile_cart['y'][:].data)
+    wccen = True # set this to calc rmw later
 else:
-    print('objective center seems reasonable')
+    print('objective center seems reasonable or W-C bad')
     sam_lon = sam_lon_tmp
     sam_lat = sam_lat_tmp
+    xc = xc_avg
+    yc = yc_avg
+    wccen = False
+
 
 print('samurai center lat: '+str(sam_lat)+', center lon: '+str(sam_lon))
 
@@ -310,7 +284,7 @@ alt_lev = (alt == alt_plane)
 # cartesian file only 
 x = ncfile['x'][:].data
 y = ncfile['y'][:].data
-X, Y = np.meshgrid(x - xc_avg,y - yc_avg,indexing='xy') 
+X, Y = np.meshgrid(x - xc, y - yc, indexing='xy') 
 lon_nc = ncfile['longitude'][:].data
 lat_nc = ncfile['latitude'][:].data
 u_storm = np.squeeze(ncfile['U'][:].data[0,alt_lev,:,:])
@@ -327,7 +301,12 @@ th[th < 0] = th[th < 0] + 360 # degrees
 u_earth = u_storm + u_motion # u and v motion from tcvitals file 
 v_earth = v_storm + v_motion
 wspd_earth = np.sqrt(u_earth**2 + v_earth**2)
-sam_rmw = rmw_avg
+
+# calculate rmw from max SAMURAI point if reverted to W-C center above (testing lol)
+if wccen == True:
+    sam_rmw = np.nanmin(rd[wspd_earth == np.nanmax(wspd_earth)])
+elif wccen == False:
+    sam_rmw = rmw_avg
 
 # compare RMW values ( ***edit for coverage in samurai analysis*** )
 print('\n')
@@ -408,11 +387,7 @@ sfc_wind_pred_ac[mag_3km_ac*1.94 < 20] = np.nan ##### UNITS ALREADY IN KTS
 sfc_wind_pred_ac[np.isnan(mag_3km_ac)] = np.nan
 mag_3km_ac[(rd_ac/sam_rmw < 0.3)] = np.nan
 
-#%% main code: step 4 - save output data as NetCDF (adapted from MetPy documentation)
-
-print('\n')
-print('########')
-print('save txt file, netcdf, image')
+#%% main code: step 4 - prep for file saving
 
 if alt_plane == 1.5:
     sf_frac = 0.8
@@ -425,7 +400,7 @@ swann_sam_vmax = np.nanmax(sfc_wind_pred*1.94)
 swann_hdobs_vmax = np.nanmax(sfc_wind_pred_ac*1.94)
 simp_frank = sf_frac*sam_fl_vmax
 
-figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + hdobs_sm.mission.unique()[0] + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
+figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + mission + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
 
 textstr = '\n'.join((
     'Inputs: HRD TDR, HDOBS',
@@ -433,61 +408,18 @@ textstr = '\n'.join((
     'RMW: %.1f (nm)' % (swann_rmw/1.852,),
     'Simp. Franklin: %.1f (kt)' % (simp_frank,), ))
 
-f = open(inDir+'txt_output/'+args.STORM+'_'+analysis_time+'_data_samurai.txt','w')
-lines = ['Inputs: HRD TDR, HDOBS\n', 'SAMURAI Center: '+str(sam_lat)+', '+str(sam_lon)+'\n', 'SAMURAI Vmax (kts): '+str(sam_fl_vmax)+'\n', 'SWANN Vmax (kts): '+str(swann_sam_vmax), 'SWANN RMW (nm): '+str(swann_rmw/1.852), 'Simplified Franklin (kts): '+str(simp_frank)]
-f.writelines(lines)
-f.close()
-
-# figure out how to add simplified franklin number back in
-#    'Simplified Franklin: %.1f (kt)' % (sf_frac*np.nanmax(wspd_earth*1.94), ) ))
-
 # convert coords, first to cartesian
 x_plot = X
 y_plot = Y
 
-# open file
-ncfile_sfc = Dataset('./nn_output/HOT_SAMURAI_sfc_analysis_'+args.STORM+'_'+analysis_time+'.nc',mode='w',format='NETCDF4') 
-
-# define dimensions
-# are these two-dimensional?? (could do a simple, x/y)
-y_dim = ncfile_sfc.createDimension('latitude', len(lat_nc))     # latitude axis
-x_dim = ncfile_sfc.createDimension('longitude', len(lon_nc))    # longitude axis
-time_dim = ncfile_sfc.createDimension('time', 1) # unlimited axis (can be appended to)
-
-# set up metadata
-ncfile_sfc.title='CSU Predicted Surface Wind'
-ncfile_sfc.subtitle="Generated using CSU SWANN"
-
-# set up variables
-nclat = ncfile_sfc.createVariable('latitude', np.float32, ('latitude'))
-nclat.units = 'degrees_north'
-nclat.long_name = 'latitude'
-nclon = ncfile_sfc.createVariable('longitude', np.float32, ('longitude'))
-nclon.units = 'degrees_east'
-nclon.long_name = 'longitude'
-nctime = ncfile_sfc.createVariable('time', np.float64, ('time',))
-nctime.units = 'seconds since 1970-01-01'
-nctime.long_name = 'time'
-# Define a 3D variable to hold the data
-ncu = ncfile_sfc.createVariable('u_wind',np.float64,('time','latitude','longitude')) # note: unlimited dimension is leftmost
-ncu.units = 'm s-1' 
-ncu.standard_name = 'eastward_wind' # this is a CF standard name
-ncu.long_name = 'U component of the predicted surface wind'
-ncv = ncfile_sfc.createVariable('v_wind',np.float64,('time','latitude','longitude')) # note: unlimited dimension is leftmost
-ncv.units = 'm s-1' 
-ncv.standard_name = 'northward_wind' # this is a CF standard name
-ncv.long_name = 'V component of the predicted surface wind'
-
-# save data to arrays and reshape data into 2-D array
-nclat[:] = lat_nc # (MAYBE?!) 
-nclon[:] = lon_nc # (MAYBE?!)
-nctime[:] = (samurai_time - pd.Timestamp("1970-01-01", tz='UTC')) // pd.Timedelta('1s')
-ncu[:,:,:] = u_nc[np.newaxis,:,:] # check dimensions
-ncv[:,:,:] = v_nc[np.newaxis,:,:] # check dimensions
-
-ncfile_sfc.close()
-
 #%% main code: step 5 - generate any images
+
+print('\n')
+print('########')
+print('save txt file, netcdf, image')
+
+# save netcdf file
+save_files.save_2d_netcdf(lat_nc, lon_nc, u_nc, v_nc, samurai_time, analysis_time, args)
 
 # wind radii calculations
 
@@ -512,112 +444,16 @@ echo_edges[1] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plot < 0) | (y_p
 echo_edges[2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plot > 0) | (y_plot > 0), np.nan, rd))
 echo_edges[3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plot > 0) | (y_plot < 0), np.nan, rd))
 
-vmax_col_labels = ['HDOBS\nVmax (kt)','SAMURAI\nVmax (kt)']
-vmax_row_labels = ['FL','SWANN']
+### EDGES RIGHT NOW IN KM, FIX OR CONVERT TO NM
+# affect save_txt and plot_image_4pan (and AF code)
+
 vmax_table = [[hdobs_fl_vmax,sam_fl_vmax],[swann_hdobs_vmax, swann_sam_vmax]]
 
-radii_col_labels = ['NE','SE','SW','NW']
-radii_row_labels = ['R34','R50','R64']
-
-colors1 = plt.cm.Blues(np.linspace(0.2, 0.8, 7,endpoint=False)+0.5/7.)
-colors2 = plt.cm.Greens(np.linspace(0.2, 0.8, 8,endpoint=False)+0.5/8.)
-colors3 = plt.cm.YlOrRd(np.linspace(0.0, 0.25, 7,endpoint=False)+0.5/7.)
-colors4 = plt.cm.Reds(np.linspace(0.5, 0.8, 8,endpoint=False)+0.5/8.)
-colors5 = plt.cm.RdPu(np.linspace(0.3, 0.9, 14,endpoint=False)+0.5/14.)
-
-# combine them and build a new colormap
-cs = np.vstack((colors1, colors2, colors3, colors4, colors5))
-
-bounds = np.hstack((np.arange(20,34,2),np.arange(34,50,2),np.arange(50,64,2),np.arange(64,96,4),np.arange(96,200,8)))
-norm = colors.BoundaryNorm(boundaries=bounds,ncolors=len(bounds))
-spd_ticks = [20,34,50,64,83,96,113,137]
-
-mymap = colors.ListedColormap(cs)
-
-line = Line2D([0], [0], label='RMW', color='k', linestyle='--')
-
-fig = plt.figure(figsize=(8.5,7))
-#fig = plt.figure(constrained_layout=True,figsize=(8,6))
-gs = fig.add_gridspec(3,3,height_ratios=[1.0,0.05,1.0])
-f_ax1 = fig.add_subplot(gs[0, 0])
-f_ax2 = fig.add_subplot(gs[0, 1])
-f_ax3 = fig.add_subplot(gs[0, 2])
-f_ax4 = fig.add_subplot(gs[2, :-1])
-f_ax5 = fig.add_subplot(gs[2, -1])
-c1 = f_ax1.contourf(x_plot/1.852, y_plot/1.852, sfc_wind_pred*1.94, levels=bounds, norm=norm, cmap=mymap, extend='max');
-c2 = f_ax2.contourf(x_plot/1.852, y_plot/1.852, mag_3km*1.94, levels=bounds, norm=norm, cmap=mymap, extend='max');
-t1 = f_ax1.contour(x_plot/1.852, y_plot/1.852, sfc_wind_pred*1.94,colors=['k','k','k'],
-                 linewidths=[0.35,0.7,1.15], levels=[83,113,137])
-t2 = f_ax2.contour(x_plot/1.852, y_plot/1.852, mag_3km*1.94,colors=['k','k','k'],
-                 linewidths=[0.35,0.7,1.15], levels=[83,113,137])
-ln2, = f_ax2.plot(x_plane/1.852,y_plane/1.852,'k')
-f_ax2.legend([ln2],['flight path'])
-f_ax2.plot(x_plane[0]/1.852,y_plane[0]/1.852,'kx') # flight start
-f_ax2.plot(x_plane[-1]/1.852,y_plane[-1]/1.852,'ko') # flight end
-c3 = f_ax3.contourf(x_plot/1.852, y_plot/1.852, sfc_wind_pred/mag_3km, levels=np.arange(0.75,1.05,0.05), cmap='coolwarm', extend='both')
-#f_ax1.contour(x_plot/1.852, y_plot/1.852, rd/1.852, levels=np.array([swann_rmw/1.852]), colors='k', linestyles='dotted');
-#f_ax1.legend([line],['RMW'])
-f_ax3.contour(x_plot/1.852, y_plot/1.852, rd/1.852, levels=np.array([swann_rmw/1.852]), colors='k', linestyles='dotted');
-f_ax3.legend([line],['RMW'])
-f_ax1.set_aspect('equal')
-f_ax2.set_aspect('equal')
-f_ax3.set_aspect('equal')
-f_ax4.plot(hdobs.dt, hdobs.wsp, 'r')
-f_ax4.plot(hdobs.dt, sfc_wind_pred_ac*1.94, color='#1E4D2B')
-f_ax4.plot(hdobs.dt.values[0], hdobs.wsp.values[0], 'kx') # flight start
-f_ax4.plot(hdobs.dt.values[-1], hdobs.wsp.values[-1], 'ko') # flight end
-#f_ax4.plot(hdobs.dt, hdobs.sfmr, 'k',hdobs.dt, hdobs.wsp, 'r')
-f_ax5.text(-0.075, 0.99, textstr, transform=f_ax5.transAxes, fontsize=10,verticalalignment='top')
-my_table = f_ax5.table(cellText=np.round(vmax_table,decimals=1), 
-                     rowLabels=vmax_row_labels, colLabels=vmax_col_labels,
-                     bbox=[0.15,0.3,0.8,0.375])
-for (row, col), cell in my_table.get_celld().items():
-    if (row == 2):
-        cell.set_text_props(fontproperties=FontProperties(weight='bold'))
-        cell.get_text().set_color('#1E4D2B')
-
-my_table2 = f_ax5.table(cellText=radii_vals_str, # convert radii from km to nm
-#my_table2 = f_ax5.table(cellText=np.rint(radii_vals/1.852).astype(int), # convert radii from km to nm
-                     rowLabels=radii_row_labels, colLabels=radii_col_labels,
-                     bbox=[0.15,-0.025,0.8,0.3])
-
-for (row, col), cell in my_table2.get_celld().items():
-    if (row == 0) | (col == -1):
-        continue
-    if ((radii_vals[row-1,col]/echo_edges[col]) > 0.95):
-        cell.set_text_props(fontproperties=FontProperties(style='italic',weight='ultralight'))
-        cell.get_text().set_color('red')
-
-f_ax5.set_axis_off()
-f_ax4.legend(['HDOBS FL','HDOBS SWANN'])
-#f_ax4.legend(['SFMR (kt)','FL (kt)'])
-f_ax4.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
-f_ax1.set_xlim([-85,85]); f_ax1.set_ylim([-85,85])
-f_ax2.set_xlim([-85,85]); f_ax2.set_ylim([-85,85])
-f_ax3.set_xlim([-85,85]); f_ax3.set_ylim([-85,85])
-f_ax1.set_xticks([-80, -40, 0, 40, 80]); f_ax1.set_yticks([-80, -40, 0, 40, 80]);
-f_ax2.set_xticks([-80, -40, 0, 40, 80]); f_ax2.set_yticks([-80, -40, 0, 40, 80]);
-f_ax2.set_yticklabels([])
-f_ax3.set_xticks([-80, -40, 0, 40, 80]); f_ax3.set_yticks([-80, -40, 0, 40, 80]);
-f_ax3.set_yticklabels([])
-f_ax4.grid(True)
-f_ax1.xaxis.set_minor_locator(AutoMinorLocator()); f_ax1.yaxis.set_minor_locator(AutoMinorLocator())
-f_ax2.xaxis.set_minor_locator(AutoMinorLocator()); f_ax2.yaxis.set_minor_locator(AutoMinorLocator())
-f_ax3.xaxis.set_minor_locator(AutoMinorLocator()); f_ax3.yaxis.set_minor_locator(AutoMinorLocator())
-f_ax1.set_xlabel('distance from center (nm)'); f_ax1.set_ylabel('distance from center (nm)');
-f_ax2.set_xlabel('distance from center (nm)');
-f_ax3.set_xlabel('distance from center (nm)');
-f_ax1.set_title('SWANN SFC wind (kt)');
-f_ax2.set_title('SAMURAI FL wind (kt)');
-f_ax3.set_title('ratio: SFC/FL');
-f_ax4.set_ylabel('wind speed (kt)');
-plt.suptitle(figtitle,y=0.915)
-cb1 = plt.colorbar(mappable=c1,cax=fig.add_subplot(gs[1,:2]), orientation='horizontal',ticks=spd_ticks)
-cb1.ax.set_title('');
-cb1.add_lines(t1)
-cb3 = plt.colorbar(mappable=c3,cax=fig.add_subplot(gs[1,2]), orientation='horizontal', ticks=[0.75, 0.85, 0.95, 1.05])
-cb3.ax.set_title('');
-fig.savefig(imDir+args.STORM+'_'+analysis_time+'_4pan.png', dpi=200, bbox_inches='tight')
-#fig.savefig(imDir+args.STORM+'_'+args.ANALYSISTIME+'_4pan_'+ml_ver+mode+'.png', dpi=200, bbox_inches='tight')
+# save output text file
+save_files.save_txt(sam_lat, sam_lon, sam_fl_vmax, swann_sam_vmax, sam_rmw, simp_frank, radii_vals_nm, echo_edges,
+                    inDir, args, analysis_time, 'SAM')
 
 
+# save figure
+save_files.plot_image_4pan(x_plot, y_plot, rd, x_plane, y_plane, sfc_wind_pred, mag_3km, sfc_wind_pred_ac, hdobs, swann_rmw,
+                           radii_vals_str, radii_vals, echo_edges, textstr, vmax_table, figtitle, args, imDir, analysis_time)

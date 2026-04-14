@@ -27,15 +27,12 @@ def create_dataframe(inDir, start_time, end_time):
     return df_orig
 
 
-def shrink_df(df, start_time, end_time, storm_name, af):
+def shrink_df(df, start_time, end_time, storm_name, af, mission_code=None):
 
     # reducing to a 1-min buffer for now
     #mask = (df['datetime'] >= (start_time - pd.Timedelta(5,unit='m'))) & (df['datetime'] <= (end_time + pd.Timedelta(5,unit='m')))
     mask = (df['datetime'] >= (start_time - pd.Timedelta(10,unit='m'))) & (df['datetime'] <= (end_time + pd.Timedelta(10,unit='m'))) # with 10-min buffer, removing for now
     df_sm = df.loc[mask].reset_index(drop=True)
-    #print(df_sm)
-    #print(df['datetime'])
-    #print(df[df.path.str.contains('KNHC')])
     print(start_time)
     print(end_time)
         
@@ -52,7 +49,11 @@ def shrink_df(df, start_time, end_time, storm_name, af):
 
         # only retain paths that match the storm name passed to function
         df_sm = df_sm.join(pd.DataFrame(hdob_header,columns=['plane','mission','storm','hdob','num','date'],dtype=str))
-        df_storm = df_sm[df_sm.storm == storm_name]
+
+        if mission_code is not None:
+            df_storm = df_sm[(df_sm.storm == storm_name) & (df_sm.mission == mission_code)]
+        else:
+            df_storm = df_sm[(df_sm.storm == storm_name)]
 
         # check to see if storm hasn't been named yet
         if df_storm.shape[0] == 0:
