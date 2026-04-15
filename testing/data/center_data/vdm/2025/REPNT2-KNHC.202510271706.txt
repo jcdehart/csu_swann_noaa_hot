@@ -1,0 +1,29 @@
+
+073 
+URNT12 KNHC 271706
+VORTEX DATA MESSAGE   AL132025
+A. 27/16:47:50Z
+B. 16.39 deg N 078.25 deg W
+C. 700 mb 2325 m
+D. 908 mb
+E. 340 deg 21 kt
+F. CLOSED
+G. C10
+H. 170 kt
+I. 290 deg 5 nm 16:46:30Z
+J. 016 deg 152 kt
+K. 290 deg 5 nm 16:46:30Z
+L. 152 kt
+M. 111 deg 5 nm 16:50:00Z
+N. 207 deg 150 kt
+O. 115 deg 6 nm 16:50:30Z
+P. 10 C / 3056 m
+Q. 25 C / 3040 m
+R. 7 C / NA
+S. 12345 / 7
+T. 0.02 / 1 nm
+U. AF308 2013A MELISSA    OB 34
+MAX FL WIND 161 KT 041 / 7 NM 15:44:00Z
+BIRDS IN EYEWALL
+;
+

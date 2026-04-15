@@ -1,0 +1,28 @@
+
+091 
+URNT12 KNHC 252334
+VORTEX DATA MESSAGE   AL132025
+A. 25/23:15:30Z
+B. 16.41 deg N 075.68 deg W
+C. 700 mb 2869 m
+D. 972 mb
+E. 210 deg 12 kt
+F. CLOSED
+G. C28
+H. 79 kt
+I. 083 deg 11 nm 23:12:00Z
+J. 194 deg 81 kt
+K. 097 deg 13 nm 23:11:00Z
+L. 85 kt
+M. 298 deg 16 nm 23:21:30Z
+N. 044 deg 88 kt
+O. 304 deg 24 nm 23:24:00Z
+P. 10 C / 3045 m
+Q. 17 C / 3048 m
+R. 10 C / NA
+S. 12345 / 7
+T. 0.02 / 1 nm
+U. AF301 1413A MELISSA    OB 03
+MAX FL WIND 88 KT 304 / 24 NM 23:24:00Z
+;
+
