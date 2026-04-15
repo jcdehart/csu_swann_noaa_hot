@@ -29,6 +29,7 @@ parser.add_argument("STORM", help="storm name (all caps)", type=str)
 parser.add_argument("STARTTIME", help="samurai start datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("ENDTIME", help="samurai end datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("PLANE", help="plane: NOAA (N) or AF (A)", type=str)
+parser.add_argument("--MODE", default="normal", help="run mode (test or normal)", type=str)
 parser.add_argument("--VDMLAT", default="0.0", help="VDM center lat", type=float)
 parser.add_argument("--VDMLON", default="0.0", help="VDM center lon", type=float)
 parser.add_argument("--CENFN", default="gfs.tXXz.syndata.tcvitals.tm00", help="TC Vitals filename", type=str)
@@ -43,23 +44,40 @@ elif args.PLANE == 'N':
 else:
     print('SPECIFY PLANE!!')
 
+mode = args.MODE
+
+if mode == 'test':
+    ext = 'testing/output/'
+else:
+    ext = ''
+
 print(af)
 
 #%% set up dirs
 # local testing
 inDir = '/bell-scratch/jcdehart/hot_operational/csu_swann_noaa_hot/'
-data_dir = inDir+'ingest_dir/'
-ml_dir_base = inDir+'ML_models/'
-hdobs_ingest_dir = inDir+'hdobs_parent/hdobs_input/'
-output_dir = inDir+'nn_testing/'
-imDir = inDir+'images/'
-
-ml_dir = ml_dir_base + 'Current_HOT_Model/'
+ml_dir = inDir+'ml_model/'
 ml_file = 'HS24_SCL_2DNN_model_v2.h5'
 json_fn = 'HS24_SCL_2DNN_model_v2.json'
+hdobs_ingest_dir = inDir+ext+'hdobs_parent/hdobs_input/'
+output_dir = inDir+ext+'nn_testing/'
+imDir = inDir+ext+'images/'
 
-leg_start = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True)
-leg_end = pd.to_datetime(args.ENDTIME,format='%Y%m%d%H%M',utc=True)
+# make sure dirs exist
+os.system('mkdir -p '+hdobs_ingest_dir)
+os.system('mkdir -p '+output_dir)
+os.system('mkdir -p '+imDir)
+
+# set up mode specific paths/vars
+if mode == 'normal':
+    data_dir = inDir+'ingest_dir/'
+    leg_start = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True)
+    leg_end = pd.to_datetime(args.ENDTIME,format='%Y%m%d%H%M',utc=True)
+elif mode == 'test':
+    data_dir = inDir+'testing/data/'
+    leg_start = pd.to_datetime('202510281328',format='%Y%m%d%H%M',utc=True)
+    leg_end = pd.to_datetime('202510281403',format='%Y%m%d%H%M',utc=True)
+
 samurai_time = leg_start + ((leg_end-leg_start)/2).round('min')
 analysis_time = samurai_time.strftime('%Y%m%d%H%M')
 print('\n')
