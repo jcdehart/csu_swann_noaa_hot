@@ -283,41 +283,18 @@ print('\n')
 print('########')
 print('run SWANN on SAMURAI output and HDOBS')
 
-# load json and create model
-json_file = open(ml_dir+json_fn, 'r')
-loaded_model_json = json_file.read()
-json_file.close()
-nn_model = model_from_json(loaded_model_json)
+# read and process samurai file
+ncvars = { 
+  'alt': 'altitude', 'x': 'x', 'y': 'y',
+  'lon': 'longitude', 'lat': 'latitude',
+  'u': 'U', 'v': 'V'
+}
 
-# load weights into new model
-nn_model.load_weights(ml_dir+ml_file)
-print("Loaded model from disk")
-
-# read samurai file and reshape samurai output arrays
-ncfile = Dataset(sam_dir+sam_fn)
-alt = ncfile['altitude'][:].data
-alt_lev = (alt == alt_plane)
-
-# cartesian file only 
-x = ncfile['x'][:].data
-y = ncfile['y'][:].data
-X, Y = np.meshgrid(x - xc, y - yc, indexing='xy') 
-lon_nc = ncfile['longitude'][:].data
-lat_nc = ncfile['latitude'][:].data
-u_storm = np.squeeze(ncfile['U'][:].data[0,alt_lev,:,:])
-v_storm = np.squeeze(ncfile['V'][:].data[0,alt_lev,:,:])
-u_storm[u_storm == -999] = np.nan
-v_storm[u_storm == -999] = np.nan
-rd = np.sqrt(X**2 + Y**2)
-th_nc = np.arctan2(Y, X) # radians
-th = th_nc*180./np.pi
-th[th < 0] = th[th < 0] + 360 # degrees
+# read SAMURAI file, recenter, calculate radius, angle
+u_storm, v_storm, lon_nc, lat_nc, th, th_nc, rd, X, Y = hot_prep_data.read_netcdf(sam_dir, sam_fn, ncvars, alt_plane, [xc, yc])
     
-# calculate earth-relative components and magnitude
-# rmw from Jon's code if cartesian
-u_earth = u_storm + u_motion # u and v motion from tcvitals file 
-v_earth = v_storm + v_motion
-wspd_earth = np.sqrt(u_earth**2 + v_earth**2)
+# add storm motion, calculate wind speed
+wspd_earth = hot_prep_data.calc_wspd_earth(u_storm, v_storm, u_motion, v_motion, True)
 
 # calculate rmw from max SAMURAI point if reverted to W-C center above (testing lol)
 if wccen == True:
@@ -338,6 +315,16 @@ X_ratio, r_norm = hot_prep_data.process_nn_vars(rd, sam_rmw, th, storm_dir, stor
 
 # standardize data
 x_data = model_utils.Standardize_Vars(X_ratio.T)
+
+# load json and create model
+json_file = open(ml_dir+json_fn, 'r')
+loaded_model_json = json_file.read()
+json_file.close()
+nn_model = model_from_json(loaded_model_json)
+
+# load weights into new model
+nn_model.load_weights(ml_dir+ml_file)
+print("Loaded model from disk")
 
 # make prediction with the neural net
 predict = nn_model.predict(x_data)

@@ -1,3 +1,61 @@
+def read_netcdf(dir, file, ncvars, alt_fl, cen):
+
+    """
+    Reads 3-D NetCDF file, recenters data, grabs location/wind variables and calculates radii/angle.
+
+    Parameters
+    ----------
+    dir : str
+        Directory that contains NetCDF file
+    file : str
+        NetCDF file name
+    ncvars : dict
+        Variable name dictionary {alt, x, y, lon, lat, u, v}
+    alt_fl : float
+        Altitude of flight-level data.
+    cen : array
+        Center location, in format [x, y]
+    """
+
+    import numpy as np
+    from netCDF4 import Dataset
+
+    # read NetCDF (e.g., samurai, TC radar) file and reshape output arrays
+    ncfile = Dataset(dir+file)
+    alt = ncfile[ncvars['alt']][:].data
+    alt_lev = (alt == alt_fl)
+
+    # cartesian file only 
+    x = ncfile[ncvars['x']][:].data
+    y = ncfile[ncvars['y']][:].data
+    X_grid, Y_grid = np.meshgrid(x - cen[0], y - cen[1], indexing='xy') 
+    lon_nc = ncfile[ncvars['lon']][:].data
+    lat_nc = ncfile[ncvars['lat']][:].data
+    u_storm = np.squeeze(ncfile[ncvars['u']][:].data[0,alt_lev,:,:])
+    v_storm = np.squeeze(ncfile[ncvars['v']][:].data[0,alt_lev,:,:])
+    u_storm[u_storm == -999] = np.nan
+    v_storm[u_storm == -999] = np.nan
+    rd = np.sqrt(X_grid**2 + Y_grid**2)
+    th_nc = np.arctan2(Y_grid, X_grid) # radians
+    th = th_nc*180./np.pi
+    th[th < 0] = th[th < 0] + 360 # degrees
+
+    return u_storm, v_storm, lon_nc, lat_nc, th, th_nc, rd, X_grid, Y_grid
+
+
+def calc_wspd_earth(u_storm, v_storm, u_motion, v_motion, addmotion):
+
+    import numpy as np
+
+    if addmotion == True:
+        # calculate earth-relative components and magnitude
+        u_earth = u_storm + u_motion # u and v motion from tcvitals file 
+        v_earth = v_storm + v_motion
+        wspd_earth = np.sqrt(u_earth**2 + v_earth**2)
+    elif addmotion == False:
+        wspd_earth = np.sqrt(u_storm**2 + v_storm**2)
+
+    return wspd_earth
 
 
 def process_nn_vars(radii, rmw, theta, storm_dir, storm_intens, storm_motion, flight_wind, alt_plane, HDOBS):
