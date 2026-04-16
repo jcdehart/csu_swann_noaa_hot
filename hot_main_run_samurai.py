@@ -328,7 +328,7 @@ print("Loaded model from disk")
 
 # make prediction with the neural net
 predict = nn_model.predict(x_data)
-predict[r_norm < 0.3] = np.nan
+predict[r_norm < 0.3] = np.nan # remove data within radius of 0.3*RMW where SWANN shouldn't be applied
 #predict[r_norm < 0.5] = np.nan
 
 # reshape arrays and mask orig missing data
@@ -362,13 +362,10 @@ sfc_wind_pred[:,-4:] = np.nan
 u_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.cos(th_nc) - sfc_wind_pred*np.sin(np.radians(90-22.6))*np.sin(th_nc)
 v_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.sin(th_nc) + sfc_wind_pred*np.sin(np.radians(90-22.6))*np.cos(th_nc)
 
-### run aircraft data through model ###
-# create theta/radius grids
-rd_ac = np.sqrt(x_plane**2 + y_plane**2)
-th_r_ac = np.arctan2(y_plane, x_plane)
-th_ac = th_r_ac*180./np.pi
 
-wspd_earth_ac = hdobs.wsp.values/1.94 # CONVERTING HDOBS KTS TO M/S NEEDED FOR ALEX'S MODEL ******
+#%% ### run aircraft data through model ###
+# calculate radii, angle, windspeed (**in m/s needed for SWANN**), and RMW for in situ obs
+rd_ac, th_ac, wspd_earth_ac, hdobs_rmw_ac = hot_prep_data.prep_hdobs_data(hdobs, x_plane, y_plane)
 
 # prepare variables for NN model - HDOBs wind field
 # expected units of input vars (for this function, not model): km, km, deg (math), deg (math), kts, m/s, m/s, km (m for HDOBs)
@@ -389,7 +386,7 @@ mag_3km_ac = wspd_earth_ac
 sfc_wind_pred_ac[np.isnan(mag_3km_ac)] = np.nan
 sfc_wind_pred_ac[mag_3km_ac*1.94 < 20] = np.nan ##### UNITS ALREADY IN KTS
 sfc_wind_pred_ac[np.isnan(mag_3km_ac)] = np.nan
-mag_3km_ac[(rd_ac/sam_rmw < 0.3)] = np.nan
+mag_3km_ac[(rd_ac/sam_rmw < 0.3)] = np.nan # remove data within radius of 0.3*RMW where SWANN shouldn't be applied
 
 #%% main code: step 4 - prep for file saving
 

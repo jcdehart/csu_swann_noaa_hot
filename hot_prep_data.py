@@ -58,6 +58,34 @@ def calc_wspd_earth(u_storm, v_storm, u_motion, v_motion, addmotion):
     return wspd_earth
 
 
+def prep_hdobs_data(hdobs, x_plane, y_plane):
+
+    """
+    Prep HDOBs data.
+
+    Parameters
+    ----------
+    hdobs : pandas dataframe
+        HDOBs data that includes windspeed (in kts)
+    x_plane : array
+        Distance of plane from storm center in x direction (km)
+    y_plane : array
+        Distance of plane from storm center in y direction (km)
+    """
+
+    import numpy as np
+
+    # create theta/radius grids 
+    rd = np.sqrt(x_plane**2 + y_plane**2)
+    th_r = np.arctan2(y_plane, x_plane)
+    th = th_r*180./np.pi
+
+    wspd_earth = hdobs.wsp.values/1.94 # CONVERTING TO M/S NEEDED FOR ALEX'S MODEL ******
+    hdobs_rmw = rd[np.unravel_index(np.nanargmax(wspd_earth),np.shape(wspd_earth))] 
+
+    return rd, th, wspd_earth, hdobs_rmw
+
+
 def process_nn_vars(radii, rmw, theta, storm_dir, storm_intens, storm_motion, flight_wind, alt_plane, HDOBS):
 
     # manipulate variables for use in neural net

@@ -175,23 +175,8 @@ print('\n')
 print('########')
 print('run SWANN on HDOBS')
 
-# load json and create model
-json_file = open(ml_dir+json_fn, 'r')
-loaded_model_json = json_file.read()
-json_file.close()
-nn_model = model_from_json(loaded_model_json)
-
-# load weights into new model
-nn_model.load_weights(ml_dir+ml_file)
-print("Loaded model from disk")
-
-# create theta/radius grids 
-rd = np.sqrt(x_plane**2 + y_plane**2)
-th_r = np.arctan2(y_plane, x_plane)
-th = th_r*180./np.pi
-
-wspd_earth = hdobs.wsp.values/1.94 # CONVERTING TO M/S NEEDED FOR ALEX'S MODEL ******
-hdobs_rmw = rd[np.unravel_index(np.nanargmax(wspd_earth),np.shape(wspd_earth))]
+# calculate radii, angle, windspeed (in m/s needed for SWANN), and RMW
+rd, th, wspd_earth, hdobs_rmw = hot_prep_data.prep_hdobs_data(hdobs, x_plane, y_plane)
 
 # compare RMW values ( ***edit for coverage in samurai analysis*** )
 print('\n')
@@ -207,9 +192,19 @@ X_ratio, r_norm = hot_prep_data.process_nn_vars(rd, hdobs_rmw, th, storm_dir, st
 # standardize data
 x_data = model_utils.Standardize_Vars(X_ratio.T)
 
+# load json and create model
+json_file = open(ml_dir+json_fn, 'r')
+loaded_model_json = json_file.read()
+json_file.close()
+nn_model = model_from_json(loaded_model_json)
+
+# load weights into new model
+nn_model.load_weights(ml_dir+ml_file)
+print("Loaded model from disk")
+
 # make prediction with the neural net
 predict = nn_model.predict(x_data)
-predict[r_norm < 0.3] = np.nan
+predict[r_norm < 0.3] = np.nan # remove data within radius of 0.3*RMW where SWANN shouldn't be applied
 
 # reshape arrays and mask orig missing data
 sfc_wind_pred = wspd_earth*predict.T[0] # multiply reduction factor and flight-level wind
