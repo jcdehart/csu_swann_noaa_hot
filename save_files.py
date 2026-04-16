@@ -53,6 +53,10 @@ def calc_radii_edges(sfc_wind_pred, x, y, r, fl_vmax, swann_vmax):
 
 def save_txt(lat, lon, fl_vmax, swann_vmax, rmw, simp_frank, radii, edges, inDir, args, analysis_time, analysis_type):
 
+    import os
+
+    os.system('mkdir -p '+inDir+'txt_output')
+
     # NE, SE, SW, NW
 
     if analysis_type == 'SAM':
