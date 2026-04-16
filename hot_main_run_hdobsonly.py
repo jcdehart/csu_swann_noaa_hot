@@ -265,42 +265,16 @@ print('save txt file, netcdf, image')
 # save netcdf file
 save_files.save_1d_netcdf(hdobs, sfc_wind_pred_ms, samurai_time, args)
 
-x_plot, y_plot = np.meshgrid(np.arange(np.nanmin(x_plane),np.nanmax(x_plane)), 
-    np.arange(np.nanmin(y_plane),np.nanmax(y_plane)))
-radii = np.sqrt(x_plot**2 + y_plot**2)
-
-# wind radii calculations
-
-wind_radii = [34,50,64]
-radii_vals = np.zeros((3,4)) # NE, SE, SW, NW
-
-for i in range(len(wind_radii)):
-    radii_vals[i,0] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plane < 0) | (y_plane < 0), np.nan, rd))
-    radii_vals[i,1] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plane < 0) | (y_plane > 0), np.nan, rd))
-    radii_vals[i,2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plane > 0) | (y_plane > 0), np.nan, rd))
-    radii_vals[i,3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plane > 0) | (y_plane < 0), np.nan, rd))
-
-# deal with NaN issue
-radii_vals_nm = np.rint(radii_vals/1.852) # convert radii from km to nm
-radii_vals_nm[np.isnan(radii_vals_nm)] = -999
-radii_vals_str = radii_vals_nm.astype(int).astype(str)
-radii_vals_str[np.isin(radii_vals_str,'-999')] = 'N/A'
-
-echo_edges = np.zeros(4)
-echo_edges[0] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane < 0) | (y_plane < 0), np.nan, rd))
-echo_edges[1] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane < 0) | (y_plane > 0), np.nan, rd))
-echo_edges[2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane > 0) | (y_plane > 0), np.nan, rd))
-echo_edges[3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane > 0) | (y_plane < 0), np.nan, rd))
-
-vmax_table = [[hdobs_fl_vmax],[swann_hdobs_vmax]]
-
+# calculate wind radii and echo edges
 ### EDGES RIGHT NOW IN KM, FIX OR CONVERT TO NM
 # affect save_txt and plot_image_4pan (and SAM code)
+fl_vmax = [hdobs_fl_vmax]
+swann_vmax = [swann_hdobs_vmax]
+radii_vals, radii_vals_nm, radii_vals_str, echo_edges, vmax_table = save_files.calc_radii_edges(sfc_wind_pred, x_plane, y_plane, rd, fl_vmax, swann_vmax)
 
 # save text file
 save_files.save_txt(storm_lat, storm_lon, hdobs_fl_vmax, swann_hdobs_vmax, swann_rmw, simp_frank, radii_vals_nm, echo_edges,
                     inDir, args, analysis_time, 'HDOBS')
-
 
 # save image
 save_files.plot_image_2pan(x_plane, y_plane, sfc_wind_pred, hdobs, radii_vals_str, radii_vals, echo_edges, 
