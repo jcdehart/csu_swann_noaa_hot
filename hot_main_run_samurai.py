@@ -396,10 +396,10 @@ if alt_plane == 1.5:
 elif alt_plane == 3.0:
     sf_frac = 0.9
 
-sam_fl_vmax = np.nanmax(wspd_earth*1.94)
-hdobs_fl_vmax = np.nanmax(hdobs.wsp)
-swann_sam_vmax = np.nanmax(sfc_wind_pred*1.94)
-swann_hdobs_vmax = np.nanmax(sfc_wind_pred_ac*1.94)
+sam_fl_vmax = np.nanmax(wspd_earth*1.94) # convert to kts
+hdobs_fl_vmax = np.nanmax(hdobs.wsp) # already in kts
+swann_sam_vmax = np.nanmax(sfc_wind_pred*1.94) # convert to kts
+swann_hdobs_vmax = np.nanmax(sfc_wind_pred_ac*1.94) # convert to kts
 simp_frank = sf_frac*sam_fl_vmax
 
 figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + mission + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
