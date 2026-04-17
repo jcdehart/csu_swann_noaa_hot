@@ -52,7 +52,8 @@ ml_dir = inDir+'ml_model/'
 ml_file = 'HS24_SCL_2DNN_model_v2.h5'
 json_fn = 'HS24_SCL_2DNN_model_v2.json'
 sam_dir_base = inDir+'samurai_parent/'
-sam_ingest_dir = inDir+ext+'samurai_parent/samurai_input/'
+sam_ingest_dir = inDir+'samurai_parent/samurai_input/'
+sam_bin = '/bell-scratch/mmbell/hot/samurai-hot/release/bin/samurai'
 output_dir = inDir+ext+'nn_testing/'
 imDir = inDir+ext+'images/'
 
@@ -196,26 +197,26 @@ print('########')
 print('running SAMURAI')
 
 # create center file
-ref_latlon_cart = make_cen_file(samurai_time, leg_start, leg_end, storm_lat, storm_lon, u_motion, v_motion, './samurai_parent/samurai_input/')
+ref_latlon = make_cen_file(samurai_time, leg_start, leg_end, storm_lat, storm_lon, u_motion, v_motion, './samurai_parent/samurai_input/')
 
 # generate samurai params file from master
-analysis_dir_cart = modify_param_file(samurai_time, './samurai_parent/master_params/samurai_HOT_cart.params', './samurai_parent/samurai_params_cart')
-sam_dir_cart = sam_dir_base + analysis_dir_cart +'_cart/'
-os.system('mkdir -p '+sam_dir_cart)
+analysis_dir = modify_param_file(samurai_time, ext, './samurai_parent/master_params/samurai_HOT_cart.params', './samurai_parent/samurai_params_cart')
+sam_dir = './' + analysis_dir +'_cart/'
+os.system('mkdir -p '+sam_dir)
 
 # run samurai in XYZ mode
-os.system('/bell-scratch/mmbell/hot/samurai-hot/release/bin/samurai -params ./samurai_parent/samurai_params_cart')
+os.system(sam_bin+' -params ./samurai_parent/samurai_params_cart')
 
 # move files to analysis_dir
-os.system('mv ./samurai_parent/samurai_params_cart '+sam_dir_cart)
-os.system('mv ./samurai_parent/samurai_input/*.cen '+sam_dir_cart)
-os.system('mv ./samurai_parent/samurai_input/*.in '+sam_dir_cart)
+os.system('mv ./samurai_parent/samurai_params_cart '+sam_dir)
+os.system('mv ./samurai_parent/samurai_input/*.cen '+sam_dir)
+os.system('mv ./samurai_parent/samurai_input/*.in '+sam_dir)
 
 
 #%% grab center from SAMURAI analysis
 # fix link to be more adaptable
 obj_master = './samurai_parent/master_params/objective_simplex.jl'
-cart_file = sam_dir_cart+'samurai_XYZ_analysis.nc'
+cart_file = sam_dir+'samurai_XYZ_analysis.nc'
 hot_calc_centers.modify_obj_jl_file(obj_master, './objective_simplex.jl', storm_rmw, cart_file)
 
 print('\n')
@@ -248,17 +249,17 @@ print('\n')
 print('avg xc: '+str(xc_avg)+', yc: '+str(yc_avg)+', rmw: '+str(rmw_avg))
 
 # interpolate center to lat/lon
-ncfile_cart = Dataset(cart_file)
-sam_lon_tmp = np.interp(xc_avg, ncfile_cart['x'][:].data, ncfile_cart['longitude'][:].data)
-sam_lat_tmp = np.interp(yc_avg, ncfile_cart['y'][:].data, ncfile_cart['latitude'][:].data)
+ncfile_cen = Dataset(cart_file)
+sam_lon_tmp = np.interp(xc_avg, ncfile_cen['x'][:].data, ncfile_cen['longitude'][:].data)
+sam_lat_tmp = np.interp(yc_avg, ncfile_cen['y'][:].data, ncfile_cen['latitude'][:].data)
 
 # check for distance from W-C center *** fix later??? *******
 if ((np.abs(sam_lon_tmp - lon_wc) > 0.4) | (np.abs(sam_lat_tmp - lat_wc) > 0.4)) & wc_good:
     print('objective center too far from W-C, W-C good, defaulting to W-C center')
     sam_lon = lon_wc
     sam_lat = lat_wc
-    xc = np.interp(lon_wc, ncfile_cart['longitude'][:].data, ncfile_cart['x'][:].data)
-    yc = np.interp(lat_wc, ncfile_cart['latitude'][:].data, ncfile_cart['y'][:].data)
+    xc = np.interp(lon_wc, ncfile_cen['longitude'][:].data, ncfile_cen['x'][:].data)
+    yc = np.interp(lat_wc, ncfile_cen['latitude'][:].data, ncfile_cen['y'][:].data)
     wccen = True # set this to calc rmw later
 else:
     print('objective center seems reasonable or W-C bad')
@@ -276,7 +277,6 @@ x_plane,y_plane = xy(hdobs.lat.values,hdobs.lon.values,sam_lat,sam_lon)
 
 # name files
 sam_fn = 'samurai_XYZ_analysis.nc'
-sam_dir = sam_dir_cart
 
 #%% main code: step 3 - neural net
 
