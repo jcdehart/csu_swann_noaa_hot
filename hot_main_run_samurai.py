@@ -74,6 +74,7 @@ elif mode == 'test':
     leg_start = pd.to_datetime('202510281328',format='%Y%m%d%H%M',utc=True)
     leg_end = pd.to_datetime('202510281403',format='%Y%m%d%H%M',utc=True)
     args.STARTTIME = leg_start.strftime('%Y%m%d%H%M')
+    args.STORM = 'AL13'
 
 samurai_time = leg_start + ((leg_end-leg_start)/2).round('min')
 analysis_time = samurai_time.strftime('%Y%m%d%H%M')
