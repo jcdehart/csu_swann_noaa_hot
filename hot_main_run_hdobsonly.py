@@ -76,8 +76,8 @@ if mode == 'normal':
 elif mode == 'test':
     data_dir = inDir+'testing/data/'
     args.CENPATH = './testing/data/center_data' # overwrite default, but consider removing entirely
-    leg_start = pd.to_datetime('202510281328',format='%Y%m%d%H%M',utc=True)
-    leg_end = pd.to_datetime('202510281403',format='%Y%m%d%H%M',utc=True)
+    leg_start = pd.to_datetime('202510281217',format='%Y%m%d%H%M',utc=True)
+    leg_end = pd.to_datetime('202510281347',format='%Y%m%d%H%M',utc=True)
     args.STARTTIME = leg_start.strftime('%Y%m%d%H%M')
     args.STORM = 'AL13'
 
