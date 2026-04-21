@@ -1,0 +1,27 @@
+
+804 
+URNT12 KWBC 250110
+VORTEX DATA MESSAGE  AL132025
+A. 25/00:50:55Z
+B. 16.06 deg N 074.89 deg W
+C. NA
+D. 994 mb
+E. 215 deg 14 kt
+F. NA
+G. NA
+H. NA
+I. NA
+J. 275 deg 39 kt
+K. 197 deg 25 nm 00:44:55Z
+L. NA
+M. NA
+N. 117 deg 41 kt
+O. 022 deg 42 nm 01:01:24Z
+P. 17 C / 2452 m
+Q. 21 C / 2440 m
+R. 11 C / NA
+S. 145 / NA
+T. 0.01 / 3 nm
+U. NOAA2 0913A MELISSA OB 20
+MAX FL WIND 48 KT 119 / 78 NM 22:56:12Z
+

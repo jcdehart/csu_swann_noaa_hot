@@ -87,7 +87,7 @@ def make_cen_file(ref_time, sam_start, sam_end, lat, lon, u, v, outDir):
     return(latlon)
 
 
-def modify_param_file(ref_time, inFile, outFile):
+def modify_param_file(ref_time, ext, inFile, outFile):
 
     """
     Update and write new parameter file from master file.
@@ -112,8 +112,8 @@ def modify_param_file(ref_time, inFile, outFile):
         filedata = file.read()
 
     # Replace the target string
-    analysis_dir = 'samurai_output/samurai_output_'+ref_time.strftime('%Y%m%d%H%M')
-    filedata = filedata.replace('samurai_output_', analysis_dir)
+    analysis_dir = ext+'samurai_parent/samurai_output/samurai_output_'+ref_time.strftime('%Y%m%d%H%M')
+    filedata = filedata.replace('samurai_parent/samurai_output_', analysis_dir)
     filedata = filedata.replace('xx:xx:xx', ref_time.strftime('%H:%M:%S'))
 
     # Write the file out again

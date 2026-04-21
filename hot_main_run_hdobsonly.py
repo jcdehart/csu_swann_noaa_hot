@@ -29,6 +29,7 @@ parser.add_argument("STORM", help="storm name (all caps)", type=str)
 parser.add_argument("STARTTIME", help="samurai start datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("ENDTIME", help="samurai end datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("PLANE", help="plane: NOAA (N) or AF (A)", type=str)
+parser.add_argument("--MODE", default="normal", help="run mode (test or normal)", type=str)
 parser.add_argument("--VDMLAT", default="0.0", help="VDM center lat", type=float)
 parser.add_argument("--VDMLON", default="0.0", help="VDM center lon", type=float)
 parser.add_argument("--CENFN", default="gfs.tXXz.syndata.tcvitals.tm00", help="TC Vitals filename", type=str)
@@ -43,23 +44,43 @@ elif args.PLANE == 'N':
 else:
     print('SPECIFY PLANE!!')
 
+mode = args.MODE
+
+if mode == 'test':
+    ext = 'testing/output/'
+else:
+    ext = ''
+
 print(af)
 
 #%% set up dirs
 # local testing
 inDir = '/bell-scratch/jcdehart/hot_operational/csu_swann_noaa_hot/'
-data_dir = inDir+'ingest_dir/'
-ml_dir_base = inDir+'ML_models/'
-hdobs_ingest_dir = inDir+'hdobs_parent/hdobs_input/'
-output_dir = inDir+'nn_testing/'
-imDir = inDir+'images/'
-
-ml_dir = ml_dir_base + 'Current_HOT_Model/'
+ml_dir = inDir+'ml_model/'
 ml_file = 'HS24_SCL_2DNN_model_v2.h5'
 json_fn = 'HS24_SCL_2DNN_model_v2.json'
+hdobs_ingest_dir = inDir+'hdobs_parent/hdobs_input/'
+output_dir = inDir+ext+'nn_testing/'
+imDir = inDir+ext+'images/'
 
-leg_start = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True)
-leg_end = pd.to_datetime(args.ENDTIME,format='%Y%m%d%H%M',utc=True)
+# make sure dirs exist
+os.system('mkdir -p '+hdobs_ingest_dir)
+os.system('mkdir -p '+output_dir)
+os.system('mkdir -p '+imDir)
+
+# set up mode specific paths/vars
+if mode == 'normal':
+    data_dir = inDir+'ingest_dir/'
+    leg_start = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True)
+    leg_end = pd.to_datetime(args.ENDTIME,format='%Y%m%d%H%M',utc=True)
+elif mode == 'test':
+    data_dir = inDir+'testing/data/'
+    args.CENPATH = './testing/data/center_data' # overwrite default, but consider removing entirely
+    leg_start = pd.to_datetime('202510281217',format='%Y%m%d%H%M',utc=True)
+    leg_end = pd.to_datetime('202510281347',format='%Y%m%d%H%M',utc=True)
+    args.STARTTIME = leg_start.strftime('%Y%m%d%H%M')
+    args.STORM = 'AL13'
+
 samurai_time = leg_start + ((leg_end-leg_start)/2).round('min')
 analysis_time = samurai_time.strftime('%Y%m%d%H%M')
 print('\n')
@@ -157,23 +178,8 @@ print('\n')
 print('########')
 print('run SWANN on HDOBS')
 
-# load json and create model
-json_file = open(ml_dir+json_fn, 'r')
-loaded_model_json = json_file.read()
-json_file.close()
-nn_model = model_from_json(loaded_model_json)
-
-# load weights into new model
-nn_model.load_weights(ml_dir+ml_file)
-print("Loaded model from disk")
-
-# create theta/radius grids 
-rd = np.sqrt(x_plane**2 + y_plane**2)
-th_r = np.arctan2(y_plane, x_plane)
-th = th_r*180./np.pi
-
-wspd_earth = hdobs.wsp.values/1.94 # CONVERTING TO M/S NEEDED FOR ALEX'S MODEL ******
-hdobs_rmw = rd[np.unravel_index(np.nanargmax(wspd_earth),np.shape(wspd_earth))]
+# calculate radii, angle, windspeed (in m/s needed for SWANN), and RMW
+rd, th, wspd_earth, hdobs_rmw = hot_prep_data.prep_hdobs_data(hdobs, x_plane, y_plane)
 
 # compare RMW values ( ***edit for coverage in samurai analysis*** )
 print('\n')
@@ -189,9 +195,19 @@ X_ratio, r_norm = hot_prep_data.process_nn_vars(rd, hdobs_rmw, th, storm_dir, st
 # standardize data
 x_data = model_utils.Standardize_Vars(X_ratio.T)
 
+# load json and create model
+json_file = open(ml_dir+json_fn, 'r')
+loaded_model_json = json_file.read()
+json_file.close()
+nn_model = model_from_json(loaded_model_json)
+
+# load weights into new model
+nn_model.load_weights(ml_dir+ml_file)
+print("Loaded model from disk")
+
 # make prediction with the neural net
 predict = nn_model.predict(x_data)
-predict[r_norm < 0.3] = np.nan
+predict[r_norm < 0.3] = np.nan # remove data within radius of 0.3*RMW where SWANN shouldn't be applied
 
 # reshape arrays and mask orig missing data
 sfc_wind_pred = wspd_earth*predict.T[0] # multiply reduction factor and flight-level wind
@@ -252,42 +268,16 @@ print('save txt file, netcdf, image')
 # save netcdf file
 save_files.save_1d_netcdf(hdobs, sfc_wind_pred_ms, samurai_time, args)
 
-x_plot, y_plot = np.meshgrid(np.arange(np.nanmin(x_plane),np.nanmax(x_plane)), 
-    np.arange(np.nanmin(y_plane),np.nanmax(y_plane)))
-radii = np.sqrt(x_plot**2 + y_plot**2)
-
-# wind radii calculations
-
-wind_radii = [34,50,64]
-radii_vals = np.zeros((3,4)) # NE, SE, SW, NW
-
-for i in range(len(wind_radii)):
-    radii_vals[i,0] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plane < 0) | (y_plane < 0), np.nan, rd))
-    radii_vals[i,1] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plane < 0) | (y_plane > 0), np.nan, rd))
-    radii_vals[i,2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plane > 0) | (y_plane > 0), np.nan, rd))
-    radii_vals[i,3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x_plane > 0) | (y_plane < 0), np.nan, rd))
-
-# deal with NaN issue
-radii_vals_nm = np.rint(radii_vals/1.852) # convert radii from km to nm
-radii_vals_nm[np.isnan(radii_vals_nm)] = -999
-radii_vals_str = radii_vals_nm.astype(int).astype(str)
-radii_vals_str[np.isin(radii_vals_str,'-999')] = 'N/A'
-
-echo_edges = np.zeros(4)
-echo_edges[0] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane < 0) | (y_plane < 0), np.nan, rd))
-echo_edges[1] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane < 0) | (y_plane > 0), np.nan, rd))
-echo_edges[2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane > 0) | (y_plane > 0), np.nan, rd))
-echo_edges[3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x_plane > 0) | (y_plane < 0), np.nan, rd))
-
-vmax_table = [[hdobs_fl_vmax],[swann_hdobs_vmax]]
-
+# calculate wind radii and echo edges
 ### EDGES RIGHT NOW IN KM, FIX OR CONVERT TO NM
 # affect save_txt and plot_image_4pan (and SAM code)
+fl_vmax = [hdobs_fl_vmax]
+swann_vmax = [swann_hdobs_vmax]
+radii_vals, radii_vals_nm, radii_vals_str, echo_edges, vmax_table = save_files.calc_radii_edges(sfc_wind_pred, x_plane, y_plane, rd, fl_vmax, swann_vmax)
 
 # save text file
 save_files.save_txt(storm_lat, storm_lon, hdobs_fl_vmax, swann_hdobs_vmax, swann_rmw, simp_frank, radii_vals_nm, echo_edges,
                     inDir, args, analysis_time, 'HDOBS')
-
 
 # save image
 save_files.plot_image_2pan(x_plane, y_plane, sfc_wind_pred, hdobs, radii_vals_str, radii_vals, echo_edges, 

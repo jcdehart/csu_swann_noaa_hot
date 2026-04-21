@@ -1,4 +1,61 @@
+def calc_radii_edges(sfc_wind_pred, x, y, r, fl_vmax, swann_vmax):
+
+    """
+    Calculate quadrant radii and echo edges for preparation for file and image generation.
+
+    Parameters
+    ----------
+    sfc_wind_pred : array
+        SWANN estimate of surface wind (must match x, y, r dimensions)
+    x : array
+        Distance from storm center in x direction (km)
+    y : array
+        Distance from storm center in y direction (km)
+    r : array
+        Distance from storm center (km)
+    fl_vmax : array
+        Flight level max winds (either 1 value for Air Force (HDOBS) or 2 values (TDR, HDOBS) for P3)
+    swann_vmax : array
+        SWANN max surface winds (either 1 value for Air Force (HDOBS) or 2 values (TDR, HDOBS) for P3)
+    """
+
+    import numpy as np
+
+    # wind radii calculations
+    wind_radii = [34,50,64]
+    radii_vals = np.zeros((3,4)) # NE, SE, SW, NW
+
+    for i in range(len(wind_radii)):
+        radii_vals[i,0] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x < 0) | (y < 0), np.nan, r))
+        radii_vals[i,1] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x < 0) | (y > 0), np.nan, r))
+        radii_vals[i,2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x > 0) | (y > 0), np.nan, r))
+        radii_vals[i,3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (1.94*sfc_wind_pred < wind_radii[i]) | (x > 0) | (y < 0), np.nan, r))
+
+    # deal with NaN issue
+    radii_vals_nm = np.rint(radii_vals/1.852) # convert radii from km to nm
+    radii_vals_nm[np.isnan(radii_vals_nm)] = -999
+    radii_vals_str = radii_vals_nm.astype(int).astype(str)
+    radii_vals_str[np.isin(radii_vals_str,'-999')] = 'N/A'
+
+    echo_edges = np.zeros(4)
+    echo_edges[0] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x < 0) | (y < 0), np.nan, r))
+    echo_edges[1] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x < 0) | (y > 0), np.nan, r))
+    echo_edges[2] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x > 0) | (y > 0), np.nan, r))
+    echo_edges[3] = np.nanmax(np.where(np.isnan(sfc_wind_pred) | (x > 0) | (y < 0), np.nan, r))
+
+    ### EDGES RIGHT NOW IN KM, FIX OR CONVERT TO NM
+    # affect save_txt and plot_image_4pan (and AF code)
+
+    vmax_table = [fl_vmax, swann_vmax]
+
+    return radii_vals, radii_vals_nm, radii_vals_str, echo_edges, vmax_table
+
+
 def save_txt(lat, lon, fl_vmax, swann_vmax, rmw, simp_frank, radii, edges, inDir, args, analysis_time, analysis_type):
+
+    import os
+
+    os.system('mkdir -p '+inDir+'txt_output')
 
     # NE, SE, SW, NW
 
