@@ -59,7 +59,7 @@ inDir = '/bell-scratch/jcdehart/hot_operational/csu_swann_noaa_hot/'
 ml_dir = inDir+'ml_model/'
 ml_file = 'HS24_SCL_2DNN_model_v2.h5'
 json_fn = 'HS24_SCL_2DNN_model_v2.json'
-hdobs_ingest_dir = inDir+ext+'hdobs_parent/hdobs_input/'
+hdobs_ingest_dir = inDir+'hdobs_parent/hdobs_input/'
 output_dir = inDir+ext+'nn_testing/'
 imDir = inDir+ext+'images/'
 
