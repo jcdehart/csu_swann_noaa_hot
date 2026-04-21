@@ -55,7 +55,7 @@ print(af)
 
 #%% set up dirs
 # local testing
-inDir = '/bell-scratch/jcdehart/hot_operational/csu_swann_noaa_hot/'
+inDir = './'
 ml_dir = inDir+'ml_model/'
 ml_file = 'HS24_SCL_2DNN_model_v2.h5'
 json_fn = 'HS24_SCL_2DNN_model_v2.json'
@@ -207,57 +207,18 @@ print("Loaded model from disk")
 
 # make prediction with the neural net
 predict = nn_model.predict(x_data)
-predict[r_norm < 0.3] = np.nan # remove data within radius of 0.3*RMW where SWANN shouldn't be applied
 
-# reshape arrays and mask orig missing data
-sfc_wind_pred = wspd_earth*predict.T[0] # multiply reduction factor and flight-level wind
+# postprocess model prediction (remove data < 0.3 R* or 3-km wind < 20 kts, grab rmw, convert wind to m/s)
+sfc_wind_pred, swann_rmw, sfc_wind_pred_ms = hot_prep_data.postprocess_swann_af(r_norm, wspd_earth, predict, rd)
 
-# grab flight-level storm-relative data and remove bad data
-mag_3km = wspd_earth
-sfc_wind_pred[np.isnan(mag_3km)] = np.nan
-sfc_wind_pred[mag_3km*1.94 < 20] = np.nan ##### UNITS ALREADY IN KTS
-sfc_wind_pred[np.isnan(mag_3km)] = np.nan
-mag_3km[(rd/hdobs_rmw < 0.3)] = np.nan
-print('/n')
-print('predicted max sfc wind: '+str(np.nanmax(sfc_wind_pred)))
-
-# grab RMW
-swann_rmw = rd[np.unravel_index(np.nanargmax(sfc_wind_pred),np.shape(sfc_wind_pred))]
-
-# unit conversion
-sfc_wind_pred_ms = sfc_wind_pred*1.94 # convert to m/s
 
 #%% main code: step 4 - prep for saving files
 
-hdobs_fl_vmax = np.nanmax(hdobs.wsp)
-swann_hdobs_vmax = np.nanmax(sfc_wind_pred*1.94)
+# calculate vmax values needed and convert remaining vars to kts
+hdobs_fl_vmax, swann_hdobs_vmax, simp_frank = hot_prep_data.vmax_calcs_af(alt_plane, hdobs, sfc_wind_pred)
 
-# determine simplified franklin reduction based on altitude of peak HDOBs wind
-med_hgt = 500*(alt_plane[np.nanargmax(hdobs.wsp)]/500).round()
-
-if med_hgt == 1500.:
-    sf_frac = 0.8
-elif med_hgt == 3000.:
-    sf_frac = 0.9
-else:
-    hgt_options = np.array([1500., 3000.])
-    alt_tmp = hgt_options[np.argmin(np.abs(med_hgt - hgt_options))]
-    
-    if alt_tmp == 1500.:
-        sf_frac = 0.8
-    elif alt_tmp == 3000.:
-        sf_frac = 0.9
-
-simp_frank = sf_frac*hdobs_fl_vmax
-
-# set up info for figure
-figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + mission + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
-
-textstr = '\n'.join((
-    'Inputs: HDOBS',
-    'W-C Center: %.2f N, %.2f W' % (storm_lat,np.abs(storm_lon),), # assuming western hemisphere
-    'RMW: %.1f (nm)' % (swann_rmw/1.852,),
-    'Simp. Franklin: %.1f (kt)' % (simp_frank,), ))
+# create text strings for image
+figtitle, textstr = hot_prep_data.create_fig_str(storm_name_2, mission, leg_start, leg_end, storm_lat, storm_lon, swann_rmw, simp_frank, 'A')
 
 #%% main code: step 5 - save all files
 

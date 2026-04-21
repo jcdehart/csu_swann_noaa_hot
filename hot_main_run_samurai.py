@@ -47,7 +47,7 @@ else:
     ext = ''
 
 #%% set up dirs
-inDir = '/bell-scratch/jcdehart/hot_operational/csu_swann_noaa_hot/'
+inDir = './'
 ml_dir = inDir+'ml_model/'
 ml_file = 'HS24_SCL_2DNN_model_v2.h5'
 json_fn = 'HS24_SCL_2DNN_model_v2.json'
@@ -280,6 +280,7 @@ x_plane,y_plane = xy(hdobs.lat.values,hdobs.lon.values,sam_lat,sam_lon)
 # name files
 sam_fn = 'samurai_XYZ_analysis.nc'
 
+
 #%% main code: step 3 - neural net
 
 print('\n')
@@ -331,39 +332,11 @@ print("Loaded model from disk")
 
 # make prediction with the neural net
 predict = nn_model.predict(x_data)
-predict[r_norm < 0.3] = np.nan # remove data within radius of 0.3*RMW where SWANN shouldn't be applied
-#predict[r_norm < 0.5] = np.nan
 
-# reshape arrays and mask orig missing data
-sfc_wind_pred = wspd_earth*np.reshape(predict,u_storm.shape,order='C') # multiply reduction factor and flight-level wind
-
-# grab flight-level storm-relative data and remove bad data
-mag_3km_srel = np.sqrt(u_storm**2 + v_storm**2)
-mag_3km = wspd_earth
-sfc_wind_pred[np.isnan(mag_3km)] = np.nan
-sfc_wind_pred[mag_3km*1.94 < 20] = np.nan
-sfc_wind_pred[np.isnan(mag_3km)] = np.nan
-mag_3km[(rd/sam_rmw < 0.3)] = np.nan
-#mag_3km[(rd/sam_rmw < 0.5)] = np.nan
-print('/n')
-print('predicted max sfc wind: '+str(np.nanmax(sfc_wind_pred)))
-
-# get RMW of max point
-swann_rmw = np.nanmin(rd[sfc_wind_pred == np.nanmax(sfc_wind_pred)]) # think this should just be a point location... *******
-
-# censor out boundaries with spectral ringing
-mag_3km[:4,:] = np.nan
-mag_3km[-4:,:] = np.nan
-mag_3km[:,:4] = np.nan
-mag_3km[:,-4:] = np.nan
-sfc_wind_pred[:4,:] = np.nan
-sfc_wind_pred[-4:,:] = np.nan
-sfc_wind_pred[:,:4] = np.nan
-sfc_wind_pred[:,-4:] = np.nan
-
-# convert wind speed to u and v, assuming inflow angle is 22.6, from zhang and uhlhorn 2012
-u_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.cos(th_nc) - sfc_wind_pred*np.sin(np.radians(90-22.6))*np.sin(th_nc)
-v_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.sin(th_nc) + sfc_wind_pred*np.sin(np.radians(90-22.6))*np.cos(th_nc)
+# postprocess model prediction (remove data < 0.3 R* or 3-km wind < 20 kts, 
+# 4 grid spaces from boundary edges due to spectral ringing, 
+# and converting to u/v assuming 22.6º inflow angle from zhang and uhlhorn)
+mag_3km, sfc_wind_pred, swann_rmw, u_nc, v_nc = hot_prep_data.postprocess_swann_sam(r_norm, wspd_earth, predict, u_storm, v_storm, rd, sam_rmw, th_nc)
 
 
 #%% ### run aircraft data through model ###
@@ -379,42 +352,18 @@ x_data_ac = model_utils.Standardize_Vars(X_ratio_ac.T)
 
 # make prediction with the neural net
 predict_ac = nn_model.predict(x_data_ac)
-predict_ac[r_norm_ac < 0.3] = np.nan
 
-# reshape arrays and mask orig missing data
-sfc_wind_pred_ac = wspd_earth_ac*predict_ac.T[0] # multiply reduction factor and flight-level wind
+# postprocess model prediction (remove data < 0.3 R* or 3-km wind < 20 kts, grab rmw, convert wind to m/s)
+sfc_wind_pred_ac, swann_rmw_ac, sfc_wind_pred_ms_ac = hot_prep_data.postprocess_swann_af(r_norm_ac, wspd_earth_ac, predict_ac, rd_ac)
 
-# grab flight-level storm-relative data and remove bad data
-mag_3km_ac = wspd_earth_ac
-sfc_wind_pred_ac[np.isnan(mag_3km_ac)] = np.nan
-sfc_wind_pred_ac[mag_3km_ac*1.94 < 20] = np.nan ##### UNITS ALREADY IN KTS
-sfc_wind_pred_ac[np.isnan(mag_3km_ac)] = np.nan
-mag_3km_ac[(rd_ac/sam_rmw < 0.3)] = np.nan # remove data within radius of 0.3*RMW where SWANN shouldn't be applied
 
 #%% main code: step 4 - prep for file saving
 
-if alt_plane == 1.5:
-    sf_frac = 0.8
-elif alt_plane == 3.0:
-    sf_frac = 0.9
+# calculate vmax values needed and convert remaining vars to kts
+sam_fl_vmax, hdobs_fl_vmax, swann_sam_vmax, swann_hdobs_vmax, simp_frank = hot_prep_data.vmax_calcs_sam(alt_plane, wspd_earth, hdobs, sfc_wind_pred, sfc_wind_pred_ac)
 
-sam_fl_vmax = np.nanmax(wspd_earth*1.94) # convert to kts
-hdobs_fl_vmax = np.nanmax(hdobs.wsp) # already in kts
-swann_sam_vmax = np.nanmax(sfc_wind_pred*1.94) # convert to kts
-swann_hdobs_vmax = np.nanmax(sfc_wind_pred_ac*1.94) # convert to kts
-simp_frank = sf_frac*sam_fl_vmax
-
-figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + mission + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
-
-textstr = '\n'.join((
-    'Inputs: HRD TDR, HDOBS',
-    'SAM Center: %.2f N, %.2f W' % (sam_lat,np.abs(sam_lon),), # currently assuming negative longitudes **********
-    'RMW: %.1f (nm)' % (swann_rmw/1.852,),
-    'Simp. Franklin: %.1f (kt)' % (simp_frank,), ))
-
-# convert coords, first to cartesian
-x_plot = X
-y_plot = Y
+# create text strings for image
+figtitle, textstr = hot_prep_data.create_fig_str(storm_name_2, mission, leg_start, leg_end, sam_lat, sam_lon, swann_rmw, simp_frank, 'N')
 
 #%% main code: step 5 - generate any images
 
@@ -430,12 +379,12 @@ save_files.save_2d_netcdf(lat_nc, lon_nc, u_nc, v_nc, samurai_time, analysis_tim
 # affect save_txt and plot_image_4pan (and AF code)
 fl_vmax = [hdobs_fl_vmax,sam_fl_vmax]
 swann_vmax = [swann_hdobs_vmax, swann_sam_vmax]
-radii_vals, radii_vals_nm, radii_vals_str, echo_edges, vmax_table = save_files.calc_radii_edges(sfc_wind_pred, x_plot, y_plot, rd, fl_vmax, swann_vmax)
+radii_vals, radii_vals_nm, radii_vals_str, echo_edges, vmax_table = save_files.calc_radii_edges(sfc_wind_pred, X, Y, rd, fl_vmax, swann_vmax)
 
 # save output text file
 save_files.save_txt(sam_lat, sam_lon, sam_fl_vmax, swann_sam_vmax, sam_rmw, simp_frank, radii_vals_nm, echo_edges,
                     inDir, args, analysis_time, 'SAM')
 
 # save figure
-save_files.plot_image_4pan(x_plot, y_plot, rd, x_plane, y_plane, sfc_wind_pred, mag_3km, sfc_wind_pred_ac, hdobs, swann_rmw,
+save_files.plot_image_4pan(X, Y, rd, x_plane, y_plane, sfc_wind_pred, mag_3km, sfc_wind_pred_ac, hdobs, swann_rmw,
                            radii_vals_str, radii_vals, echo_edges, textstr, vmax_table, figtitle, args, imDir, analysis_time)

@@ -1,3 +1,153 @@
+def postprocess_swann_af(r_norm, wspd_earth, predict, rd):
+
+    import numpy as np
+
+    predict[r_norm < 0.3] = np.nan # remove data within radius of 0.3*RMW where SWANN shouldn't be applied
+
+    # reshape arrays and mask orig missing data
+    sfc_wind_pred = wspd_earth*predict.T[0] # multiply reduction factor and flight-level wind
+
+    # grab flight-level storm-relative data and remove bad data
+    sfc_wind_pred[np.isnan(wspd_earth)] = np.nan
+    sfc_wind_pred[wspd_earth*1.94 < 20] = np.nan 
+    sfc_wind_pred[np.isnan(wspd_earth)] = np.nan
+    print('/n')
+    print('predicted max sfc wind: '+str(np.nanmax(sfc_wind_pred)))
+
+    # grab RMW
+    swann_rmw = rd[np.unravel_index(np.nanargmax(sfc_wind_pred),np.shape(sfc_wind_pred))]
+
+    # unit conversion
+    sfc_wind_pred_ms = sfc_wind_pred*1.94 # convert to m/s
+
+    return sfc_wind_pred, swann_rmw, sfc_wind_pred_ms
+
+
+def postprocess_swann_sam(r_norm, wspd_earth, predict, u_storm, v_storm, rd, sam_rmw, th_nc):
+
+    import numpy as np
+
+    predict[r_norm < 0.3] = np.nan # remove data within radius of 0.3*RMW where SWANN shouldn't be applied
+
+    # reshape arrays and mask orig missing data
+    sfc_wind_pred = wspd_earth*np.reshape(predict,u_storm.shape,order='C') # multiply reduction factor and flight-level wind
+
+    # grab flight-level storm-relative data and remove bad data
+    mag_3km = wspd_earth
+    sfc_wind_pred[np.isnan(mag_3km)] = np.nan
+    sfc_wind_pred[mag_3km*1.94 < 20] = np.nan
+    sfc_wind_pred[np.isnan(mag_3km)] = np.nan # can i remove this???
+    mag_3km[(rd/sam_rmw < 0.3)] = np.nan
+    print('/n')
+    print('predicted max sfc wind: '+str(np.nanmax(sfc_wind_pred)))
+
+    # get RMW of max point
+    swann_rmw = np.nanmin(rd[sfc_wind_pred == np.nanmax(sfc_wind_pred)]) # think this should just be a point location... *******
+
+    # censor out boundaries with spectral ringing
+    mag_3km[:4,:] = np.nan; mag_3km[-4:,:] = np.nan; mag_3km[:,:4] = np.nan; mag_3km[:,-4:] = np.nan
+    sfc_wind_pred[:4,:] = np.nan; sfc_wind_pred[-4:,:] = np.nan; sfc_wind_pred[:,:4] = np.nan; sfc_wind_pred[:,-4:] = np.nan
+
+    # convert wind speed to u and v, assuming inflow angle is 22.6, from zhang and uhlhorn 2012
+    u_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.cos(th_nc) - sfc_wind_pred*np.sin(np.radians(90-22.6))*np.sin(th_nc)
+    v_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.sin(th_nc) + sfc_wind_pred*np.sin(np.radians(90-22.6))*np.cos(th_nc)
+
+    return mag_3km, sfc_wind_pred, swann_rmw, u_nc, v_nc
+
+
+def vmax_calcs_af(alt_plane, hdobs, sfc_wind_pred):
+
+    import numpy as np
+
+    hdobs_fl_vmax = np.nanmax(hdobs.wsp)
+    swann_hdobs_vmax = np.nanmax(sfc_wind_pred*1.94) # convert to kts
+
+    # determine simplified franklin reduction based on altitude of peak HDOBs wind
+    med_hgt = 500*(alt_plane[np.nanargmax(hdobs.wsp)]/500).round()
+
+    if med_hgt == 1500.:
+        sf_frac = 0.8
+    elif med_hgt == 3000.:
+        sf_frac = 0.9
+    else:
+        hgt_options = np.array([1500., 3000.])
+        alt_tmp = hgt_options[np.argmin(np.abs(med_hgt - hgt_options))]
+        
+        if alt_tmp == 1500.:
+            sf_frac = 0.8
+        elif alt_tmp == 3000.:
+            sf_frac = 0.9
+
+    simp_frank = sf_frac*hdobs_fl_vmax    
+
+    return hdobs_fl_vmax, swann_hdobs_vmax, simp_frank       
+
+
+def vmax_calcs_sam(alt_plane, wspd_earth, hdobs, sfc_wind_pred, sfc_wind_pred_ac):
+
+    import numpy as np
+
+    if alt_plane == 1.5:
+        sf_frac = 0.8
+    elif alt_plane == 3.0:
+        sf_frac = 0.9
+
+    sam_fl_vmax = np.nanmax(wspd_earth*1.94) # convert to kts
+    hdobs_fl_vmax = np.nanmax(hdobs.wsp) # already in kts
+    swann_sam_vmax = np.nanmax(sfc_wind_pred*1.94) # convert to kts
+    swann_hdobs_vmax = np.nanmax(sfc_wind_pred_ac*1.94) # convert to kts
+    simp_frank = sf_frac*sam_fl_vmax
+
+    return sam_fl_vmax, hdobs_fl_vmax, swann_sam_vmax, swann_hdobs_vmax, simp_frank
+
+
+def create_fig_str(storm_name, mission, leg_start, leg_end, lat, lon, rmw, simp_frank, plane):
+
+    """
+    Creates figure title and info box strings.
+
+    Parameters
+    ----------
+    storm_name : str
+        Storm name (e.g., ANDREW)
+    mission : str
+        Flight code
+    leg_start : pandas datetime
+        Start time of leg
+    leg_end : pandas datetime
+        End time of leg
+    lat : float
+        Center latitude
+    lon : float
+        Center longitude
+    rmw : float
+        Radius of maximum wind (km)
+    simp_frank : float
+        Simplified Franklin estimate of max surface wind (kts)
+    plane : str
+        Plane (N: NOAA P3, A: Air Force)
+    """
+
+    import numpy as np
+
+    if plane == 'N':
+        input = 'Inputs: HRD TDR, HDOBS'
+        centype = 'SAM' # modify if updated? ******
+    elif plane == 'A':
+        input = 'Inputs: HDOBS'
+        centype = 'VDM' # modify if updated? ******
+
+    figtitle = storm_name + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + mission + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
+
+    textstr = '\n'.join((
+        input,
+        centype + ' Center: %.2f N, %.2f W' % (lat, np.abs(lon),), # currently assuming negative longitudes **********
+        'RMW: %.1f (nm)' % (rmw/1.852,), # converting from km to nm
+        'Simp. Franklin: %.1f (kt)' % (simp_frank,), ))
+    
+    return figtitle, textstr
+
+
 def read_netcdf(dir, file, ncvars, alt_fl, cen):
 
     """
