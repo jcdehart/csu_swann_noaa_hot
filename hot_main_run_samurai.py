@@ -133,43 +133,11 @@ lat_wc, lon_wc, dt_wc, prominent = hot_calc_centers.run_wc(hdobs)
 
 print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc)+', time: '+dt_wc.strftime('%Y%m%d%H%M'))
 
-# use this in final comparison with objective center
-wc_good = True
-vdm_good = False
+# choose flight level center from VDM, W-C, and assess goodness of W-C center
+storm_lat, storm_lon, wc_good, vdm_good = hot_calc_centers.choose_fl_cen(args, prominent, hdobs, [lat_wc, lon_wc], 
+                                                                         [storm_lat_2, storm_lon_2])
 
-# use VDM lat/lon if exists, or W-C (**** might avg later*****)
-if (args.VDMLON != 0.0) & (args.VDMLAT != 0.0):
-    storm_lon = args.VDMLON
-    storm_lat = args.VDMLAT
-    print('Using VDM center')
-    wc_good = False # maybe add similar param for VDM? would assume vdm is good though....
-    vdm_good = True # might include a check for these cases...
-else:
-    if (prominent == True) & (hdobs.dt.diff().max() < pd.Timedelta(10,'min')):
-        print('using W-C center')
-        storm_lon = lon_wc
-        storm_lat = lat_wc
-    # elif (prominent == True) & (hdobs.dt.diff().max() >= pd.Timedelta(10,'min')):
-    #     print('HDOBs gap (>10 min), using a-deck center')
-    #     storm_lon = storm_lon_2
-    #     storm_lat = storm_lat_2
-    #     wc_good = False
-    elif (prominent == False) & (hdobs.dt.diff().max() < pd.Timedelta(10,'min')):
-        print('no prominent peaks, no HDOBs gap (>10 min), using W-C center')
-        storm_lon = lon_wc
-        storm_lat = lat_wc
-    elif (prominent == False) & (hdobs.dt.diff().max() >= pd.Timedelta(10,'min')):
-        print('no prominent peaks, HDOBs gap (>10 min), using a-deck center')
-        storm_lon = storm_lon_2
-        storm_lat = storm_lat_2
-        wc_good = False
-
-# keeping averaging in case we want it in the future
-#print('averaging all 3 centers')
-# wgt = np.array([1, 1, 3])
-#storm_lon = np.average(np.array([lon_wc,storm_lon_1,storm_lon_2]),weights=wgt)
-#storm_lat = np.average(np.array([lat_wc,storm_lat_1,storm_lat_2]),weights=wgt)
-
+# average motion vectors from tcvitals and a-deck (REVISIT*******)
 u_motion = np.nanmean(np.array([u_motion_1,u_motion_2]))
 v_motion = np.nanmean(np.array([v_motion_1,v_motion_2]))
 print([storm_lat, storm_lon])
@@ -228,57 +196,13 @@ print('calculate simplex center')
 # run julia simplex code
 os.system('sh run_julia.sh')
 
-# open julia results
-sam_cen = Dataset('samurai_center.nc', 'r')
-xc_all = sam_cen.variables['final_xc'][:]
-yc_all = sam_cen.variables['final_yc'][:]
-rmw_all = sam_cen.variables['final_rmw'][:]
-
-# avg values based on aircraft flight level
-if alt_plane == 3.0:
-    xc_avg = np.nanmean(xc_all[3:])
-    yc_avg = np.nanmean(yc_all[3:])
-    rmw_avg = np.nanmean(rmw_all[3:])
-elif alt_plane == 1.5:
-    xc_avg = np.nanmean(xc_all[0:2])
-    yc_avg = np.nanmean(yc_all[0:2])
-    rmw_avg = np.nanmean(rmw_all[0:2])
-else:
-    xc_avg = np.nanmean(xc_all)
-    yc_avg = np.nanmean(yc_all)
-    rmw_avg = np.nanmean(rmw_all)
-print('\n')
-print('avg xc: '+str(xc_avg)+', yc: '+str(yc_avg)+', rmw: '+str(rmw_avg))
-
-# interpolate center to lat/lon
-ncfile_cen = Dataset(cart_file)
-sam_lon_tmp = np.interp(xc_avg, ncfile_cen['x'][:].data, ncfile_cen['longitude'][:].data)
-sam_lat_tmp = np.interp(yc_avg, ncfile_cen['y'][:].data, ncfile_cen['latitude'][:].data)
-
-# check for distance from W-C center *** fix later??? *******
-if ((np.abs(sam_lon_tmp - lon_wc) > 0.4) | (np.abs(sam_lat_tmp - lat_wc) > 0.4)) & wc_good:
-    print('objective center too far from W-C, W-C good, defaulting to W-C center')
-    sam_lon = lon_wc
-    sam_lat = lat_wc
-    xc = np.interp(lon_wc, ncfile_cen['longitude'][:].data, ncfile_cen['x'][:].data)
-    yc = np.interp(lat_wc, ncfile_cen['latitude'][:].data, ncfile_cen['y'][:].data)
-    wccen = True # set this to calc rmw later
-else:
-    print('objective center seems reasonable or W-C bad')
-    sam_lon = sam_lon_tmp
-    sam_lat = sam_lat_tmp
-    xc = xc_avg
-    yc = yc_avg
-    wccen = False
-
-
-print('samurai center lat: '+str(sam_lat)+', center lon: '+str(sam_lon))
+# read simplex output, avg layer around flight altitude, interpolate to lat/lon,
+# check for distance from W-C center, assuming it's good, to see if simplex center good
+sam_lon, sam_lat, xc, yc, wccen, rmw_avg = hot_calc_centers.process_simplex_cen('samurai_center.nc', alt_plane, cart_file, 
+                                                                                [lat_wc, lon_wc], wc_good)
 
 # convert hdobs to xy
 x_plane,y_plane = xy(hdobs.lat.values,hdobs.lon.values,sam_lat,sam_lon)
-
-# name files
-sam_fn = 'samurai_XYZ_analysis.nc'
 
 
 #%% main code: step 3 - neural net
@@ -295,7 +219,8 @@ ncvars = {
 }
 
 # read SAMURAI file, recenter, calculate radius, angle
-u_storm, v_storm, lon_nc, lat_nc, th, th_nc, rd, X, Y = hot_prep_data.read_netcdf(sam_dir, sam_fn, ncvars, alt_plane, [xc, yc])
+u_storm, v_storm, lon_nc, lat_nc, th, th_nc, rd, X, Y = hot_prep_data.read_netcdf(sam_dir, 'samurai_XYZ_analysis.nc', 
+                                                                                  ncvars, alt_plane, [xc, yc])
     
 # add storm motion, calculate wind speed
 wspd_earth = hot_prep_data.calc_wspd_earth(u_storm, v_storm, u_motion, v_motion, True)
