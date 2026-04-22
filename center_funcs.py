@@ -303,7 +303,7 @@ def write_ncfile(lon_wc, lat_wc, yr_wc, mo_wc, da_wc, hr_wc, mn_wc, sc_wc):
 def run_wc_code(file_in):
     ####### main code
     # Temporary assigned file [will eventually be fed automated data]
-    #file_in = '/bell-scratch/jcdehart/hot/ingest_dir/center_data/ncar/flightplus_test/FLIGHT-RT_AL132023_LEE_17_AF309_1713A.nc'
+    #file_in = './ingest_dir/center_data/ncar/flightplus_test/FLIGHT-RT_AL132023_LEE_17_AF309_1713A.nc'
     #file_in = 'FLIGHT_2019_AL022019_BARRY_L1_v1.3.nc'
     #'./ingest_dir/center_data/adeck/2023'
     #file_bt = 'bal022019.dat'
