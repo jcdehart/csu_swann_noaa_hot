@@ -23,7 +23,7 @@ import hot_calc_centers
 import hot_prep_data
 import save_files
 
-#%% main code: step 1 - make center file from tcvitals of flight+ file (hot_calc_centers)
+#%% #### main code: step 1 - make center file from tcvitals of flight+ file (hot_calc_centers) ####
 
 # grab info from tcvitals or flight+ file
 parser = argparse.ArgumentParser()
@@ -94,8 +94,6 @@ print([storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motio
 print([storm_lat_2, storm_lon_2, storm_intens_2, np.nan, storm_dir_2, storm_motion_2, u_motion_2, v_motion_2, storm_dir_rot_2])
 
 # move all necessary files to ./samurai_input
-# **** for now specifying whether AF only or not ***** UPDATE IN FUTURE
-
 # first remove any existing files
 os.system('rm -rf '+sam_ingest_dir+'/*.list')
 os.system('rm -rf '+sam_ingest_dir+'/*.hdob')
@@ -143,24 +141,12 @@ v_motion = np.nanmean(np.array([v_motion_1,v_motion_2]))
 print([storm_lat, storm_lon])
 print([u_motion, v_motion])
 
-# grab plane altitude manually
-med_hgt = (500*(hdobs.hgt/500).round()).median()
-
-if med_hgt == 1500.:
-    alt_plane = 1.5
-    print('plane hgt = '+str(alt_plane))
-elif med_hgt == 3000.:
-    alt_plane = 3.
-    print('plane hgt = '+str(alt_plane))
-else:
-    hgt_options = np.array([1500, 3000])
-    alt_plane = hgt_options[np.argmin(np.abs(med_hgt - hgt_options))]/1000
-    print('plane hgt not within 500 m of options')
-    print('using plane hgt = '+str(alt_plane))
-    print('actual med plane hgt = '+str(med_hgt/1000))
+# set approximate height of P3 during flight leg (closest to 1.5 or 3 km)
+# for selecting SAMURAI level, HDOBS SWANN takes realtime altitude
+alt_plane = hot_prep_data.grab_p3_alt(hdobs)
 
 
-#%% main code: step 2 - run samurai
+#%% #### main code: step 2 - run samurai ####
 
 print('\n')
 print('########')
@@ -205,7 +191,7 @@ sam_lon, sam_lat, xc, yc, wccen, rmw_avg = hot_calc_centers.process_simplex_cen(
 x_plane,y_plane = xy(hdobs.lat.values,hdobs.lon.values,sam_lat,sam_lon)
 
 
-#%% main code: step 3 - neural net
+#%% #### main code: step 3 - run SWANN ####
 
 print('\n')
 print('########')
@@ -282,7 +268,7 @@ predict_ac = nn_model.predict(x_data_ac)
 sfc_wind_pred_ac, swann_rmw_ac, sfc_wind_pred_ms_ac = hot_prep_data.postprocess_swann_af(r_norm_ac, wspd_earth_ac, predict_ac, rd_ac)
 
 
-#%% main code: step 4 - prep for file saving
+#%% #### main code: step 4 - prep for file saving ####
 
 # calculate vmax values needed and convert remaining vars to kts
 sam_fl_vmax, hdobs_fl_vmax, swann_sam_vmax, swann_hdobs_vmax, simp_frank = hot_prep_data.vmax_calcs_sam(alt_plane, wspd_earth, hdobs, sfc_wind_pred, sfc_wind_pred_ac)
@@ -290,7 +276,7 @@ sam_fl_vmax, hdobs_fl_vmax, swann_sam_vmax, swann_hdobs_vmax, simp_frank = hot_p
 # create text strings for image
 figtitle, textstr = hot_prep_data.create_fig_str(storm_name_2, mission, leg_start, leg_end, sam_lat, sam_lon, swann_rmw, simp_frank, 'N')
 
-#%% main code: step 5 - generate any images
+#%% #### main code: step 5 - generate any images ####
 
 print('\n')
 print('########')

@@ -21,7 +21,7 @@ import hot_calc_centers
 import hot_prep_data
 import save_files
 
-#%% main code: step 1 - make center file from tcvitals of flight+ file (hot_calc_centers)
+#%% #### main code: step 1 - make center file from tcvitals of flight+ file (hot_calc_centers) ####
 
 # grab info from tcvitals or flight+ file
 parser = argparse.ArgumentParser()
@@ -140,7 +140,6 @@ storm_lat, storm_lon, wc_good, vdm_good = hot_calc_centers.choose_fl_cen(args, p
 
 u_motion = np.nanmean(np.array([u_motion_1,u_motion_2]))
 v_motion = np.nanmean(np.array([v_motion_1,v_motion_2]))
-#print([storm_lat, storm_lon])
 print([u_motion, v_motion])
 
 # grab plane altitude manually
@@ -150,7 +149,7 @@ print('using height time series for HDOBs data')
 # convert hdobs to xy
 x_plane,y_plane = xy(hdobs.lat.values,hdobs.lon.values,storm_lat,storm_lon)
 
-#%% main code: step 3 - neural net
+#%% #### main code: step 3 - run SWANN ####
 
 print('\n')
 print('########')
@@ -190,7 +189,7 @@ predict = nn_model.predict(x_data)
 sfc_wind_pred, swann_rmw, sfc_wind_pred_ms = hot_prep_data.postprocess_swann_af(r_norm, wspd_earth, predict, rd)
 
 
-#%% main code: step 4 - prep for saving files
+#%% #### main code: step 4 - prep for saving files ####
 
 # calculate vmax values needed and convert remaining vars to kts
 hdobs_fl_vmax, swann_hdobs_vmax, simp_frank = hot_prep_data.vmax_calcs_af(alt_plane, hdobs, sfc_wind_pred)
@@ -199,7 +198,7 @@ hdobs_fl_vmax, swann_hdobs_vmax, simp_frank = hot_prep_data.vmax_calcs_af(alt_pl
 figtitle, textstr = hot_prep_data.create_fig_str(storm_name_2, mission, leg_start, leg_end, storm_lat, 
                                                  storm_lon, swann_rmw, simp_frank, 'A')
 
-#%% main code: step 5 - save all files
+#%% #### main code: step 5 - save all files ####
 
 print('\n')
 print('########')

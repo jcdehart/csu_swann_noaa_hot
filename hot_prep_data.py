@@ -55,6 +55,29 @@ def postprocess_swann_sam(r_norm, wspd_earth, predict, u_storm, v_storm, rd, sam
     return mag_3km, sfc_wind_pred, swann_rmw, u_nc, v_nc
 
 
+def grab_p3_alt(hdobs):
+
+    import numpy as np
+
+    # grab plane altitude manually
+    med_hgt = (500*(hdobs.hgt/500).round()).median()
+
+    if med_hgt == 1500.:
+        alt_plane = 1.5
+        print('plane hgt = '+str(alt_plane))
+    elif med_hgt == 3000.:
+        alt_plane = 3.
+        print('plane hgt = '+str(alt_plane))
+    else:
+        hgt_options = np.array([1500, 3000])
+        alt_plane = hgt_options[np.argmin(np.abs(med_hgt - hgt_options))]/1000
+        print('plane hgt not within 500 m of options')
+        print('using plane hgt = '+str(alt_plane))
+        print('actual med plane hgt = '+str(med_hgt/1000))  
+
+    return alt_plane
+
+
 def vmax_calcs_af(alt_plane, hdobs, sfc_wind_pred):
 
     import numpy as np
