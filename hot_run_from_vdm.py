@@ -17,6 +17,6 @@ args = parser.parse_args()
 if (len(args.path) > 0):
     file = args.path
 else:
-    file = '/bell-scratch/jcdehart/hot_operational/realtime/ingest_dir/center_data/vdm/2025/REPNT2-KWBC.202508181148.txt'
+    file = './ingest_dir/center_data/vdm/2025/REPNT2-KWBC.202508181148.txt'
 
 read_vdm(file,'trigger')

@@ -23,7 +23,7 @@ import hot_calc_centers
 import hot_prep_data
 import save_files
 
-#%% main code: step 1 - make center file from tcvitals of flight+ file (hot_calc_centers)
+#%% #### main code: step 1 - make center file from tcvitals of flight+ file (hot_calc_centers) ####
 
 # grab info from tcvitals or flight+ file
 parser = argparse.ArgumentParser()
@@ -33,9 +33,6 @@ parser.add_argument("ENDTIME", help="samurai end datetime (YYYYMMDDHHMM)", type=
 parser.add_argument("--MODE", default="normal", help="run mode (test or normal)", type=str)
 parser.add_argument("--VDMLAT", default="0.0", help="VDM center lat", type=float)
 parser.add_argument("--VDMLON", default="0.0", help="VDM center lon", type=float)
-parser.add_argument("--CENFN", default="gfs.tXXz.syndata.tcvitals.tm00", help="TC Vitals filename", type=str)
-parser.add_argument("--CENPATH", default="./ingest_dir/center_data", help="TC Vitals directory", type=str)
-parser.add_argument("--CENTYPE", default="tcvitals", help="center type (tcvitals or fplus)", type=str)
 args = parser.parse_args()
 
 af = False
@@ -47,29 +44,30 @@ else:
     ext = ''
 
 #%% set up dirs
-inDir = '/bell-scratch/jcdehart/hot_operational/csu_swann_noaa_hot/'
+inDir = './'
 ml_dir = inDir+'ml_model/'
 ml_file = 'HS24_SCL_2DNN_model_v2.h5'
 json_fn = 'HS24_SCL_2DNN_model_v2.json'
 sam_dir_base = inDir+'samurai_parent/'
 sam_ingest_dir = inDir+'samurai_parent/samurai_input/'
 sam_bin = '/bell-scratch/mmbell/hot/samurai-hot/release/bin/samurai'
-output_dir = inDir+ext+'nn_testing/'
-imDir = inDir+ext+'images/'
+outDir = inDir+ext
+imDir = outDir+'images/'
 
 # make sure dirs exist
 os.system('mkdir -p '+sam_ingest_dir)
-os.system('mkdir -p '+output_dir)
+os.system('mkdir -p '+outDir)
 os.system('mkdir -p '+imDir)
 
 # set up mode specific paths/vars
 if mode == 'normal':
     data_dir = inDir+'ingest_dir/'
+    cenpath = './ingest_dir/center_data'
     leg_start = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True)
     leg_end = pd.to_datetime(args.ENDTIME,format='%Y%m%d%H%M',utc=True)
 elif mode == 'test':
     data_dir = inDir+'testing/data/'
-    args.CENPATH = './testing/data/center_data' # overwrite default, but consider removing entirely
+    cenpath = './testing/data/center_data' # overwrite default, but consider removing entirely
     leg_start = pd.to_datetime('202510281328',format='%Y%m%d%H%M',utc=True)
     leg_end = pd.to_datetime('202510281403',format='%Y%m%d%H%M',utc=True)
     args.STARTTIME = leg_start.strftime('%Y%m%d%H%M')
@@ -82,10 +80,10 @@ print('leg start time: '+leg_start.strftime('%Y%m%d%H%M'))
 print('leg end time: '+leg_end.strftime('%Y%m%d%H%M'))
 
 # grab center from tcvitals (renaming storm_name to storm_name_2)....****
-storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motion, center_time, u_motion_1, v_motion_1, storm_dir_rot, storm_name_2 = hot_calc_centers.center_tcvitals(args)
+storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motion, center_time, u_motion_1, v_motion_1, storm_dir_rot, storm_name_2 = hot_calc_centers.center_tcvitals(args, cenpath)
 
 # grab center from adeck
-storm_lat_2, storm_lon_2, storm_intens_2, storm_dir_2, storm_motion_2, df_2, u_motion_2, v_motion_2, storm_dir_rot_2 = hot_calc_centers.center_adeck(args, samurai_time)
+storm_lat_2, storm_lon_2, storm_intens_2, storm_dir_2, storm_motion_2, df_2, u_motion_2, v_motion_2, storm_dir_rot_2 = hot_calc_centers.center_adeck(args, samurai_time, cenpath)
 
 print('\n')
 print('########')
@@ -94,8 +92,6 @@ print([storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motio
 print([storm_lat_2, storm_lon_2, storm_intens_2, np.nan, storm_dir_2, storm_motion_2, u_motion_2, v_motion_2, storm_dir_rot_2])
 
 # move all necessary files to ./samurai_input
-# **** for now specifying whether AF only or not ***** UPDATE IN FUTURE
-
 # first remove any existing files
 os.system('rm -rf '+sam_ingest_dir+'/*.list')
 os.system('rm -rf '+sam_ingest_dir+'/*.hdob')
@@ -133,66 +129,22 @@ lat_wc, lon_wc, dt_wc, prominent = hot_calc_centers.run_wc(hdobs)
 
 print('W-C center lat: '+str(lat_wc)+', center lon: '+str(lon_wc)+', time: '+dt_wc.strftime('%Y%m%d%H%M'))
 
-# use this in final comparison with objective center
-wc_good = True
-vdm_good = False
+# choose flight level center from VDM, W-C, and assess goodness of W-C center
+storm_lat, storm_lon, wc_good, vdm_good = hot_calc_centers.choose_fl_cen(args, prominent, hdobs, [lat_wc, lon_wc], 
+                                                                         [storm_lat_2, storm_lon_2])
 
-# use VDM lat/lon if exists, or W-C (**** might avg later*****)
-if (args.VDMLON != 0.0) & (args.VDMLAT != 0.0):
-    storm_lon = args.VDMLON
-    storm_lat = args.VDMLAT
-    print('Using VDM center')
-    wc_good = False # maybe add similar param for VDM? would assume vdm is good though....
-    vdm_good = True # might include a check for these cases...
-else:
-    if (prominent == True) & (hdobs.dt.diff().max() < pd.Timedelta(10,'min')):
-        print('using W-C center')
-        storm_lon = lon_wc
-        storm_lat = lat_wc
-    # elif (prominent == True) & (hdobs.dt.diff().max() >= pd.Timedelta(10,'min')):
-    #     print('HDOBs gap (>10 min), using a-deck center')
-    #     storm_lon = storm_lon_2
-    #     storm_lat = storm_lat_2
-    #     wc_good = False
-    elif (prominent == False) & (hdobs.dt.diff().max() < pd.Timedelta(10,'min')):
-        print('no prominent peaks, no HDOBs gap (>10 min), using W-C center')
-        storm_lon = lon_wc
-        storm_lat = lat_wc
-    elif (prominent == False) & (hdobs.dt.diff().max() >= pd.Timedelta(10,'min')):
-        print('no prominent peaks, HDOBs gap (>10 min), using a-deck center')
-        storm_lon = storm_lon_2
-        storm_lat = storm_lat_2
-        wc_good = False
-
-# keeping averaging in case we want it in the future
-#print('averaging all 3 centers')
-# wgt = np.array([1, 1, 3])
-#storm_lon = np.average(np.array([lon_wc,storm_lon_1,storm_lon_2]),weights=wgt)
-#storm_lat = np.average(np.array([lat_wc,storm_lat_1,storm_lat_2]),weights=wgt)
-
+# average motion vectors from tcvitals and a-deck (REVISIT*******)
 u_motion = np.nanmean(np.array([u_motion_1,u_motion_2]))
 v_motion = np.nanmean(np.array([v_motion_1,v_motion_2]))
 print([storm_lat, storm_lon])
 print([u_motion, v_motion])
 
-# grab plane altitude manually
-med_hgt = (500*(hdobs.hgt/500).round()).median()
-
-if med_hgt == 1500.:
-    alt_plane = 1.5
-    print('plane hgt = '+str(alt_plane))
-elif med_hgt == 3000.:
-    alt_plane = 3.
-    print('plane hgt = '+str(alt_plane))
-else:
-    hgt_options = np.array([1500, 3000])
-    alt_plane = hgt_options[np.argmin(np.abs(med_hgt - hgt_options))]/1000
-    print('plane hgt not within 500 m of options')
-    print('using plane hgt = '+str(alt_plane))
-    print('actual med plane hgt = '+str(med_hgt/1000))
+# set approximate height of P3 during flight leg (closest to 1.5 or 3 km)
+# for selecting SAMURAI level, HDOBS SWANN takes realtime altitude
+alt_plane = hot_prep_data.grab_p3_alt(hdobs)
 
 
-#%% main code: step 2 - run samurai
+#%% #### main code: step 2 - run samurai ####
 
 print('\n')
 print('########')
@@ -228,59 +180,16 @@ print('calculate simplex center')
 # run julia simplex code
 os.system('sh run_julia.sh')
 
-# open julia results
-sam_cen = Dataset('samurai_center.nc', 'r')
-xc_all = sam_cen.variables['final_xc'][:]
-yc_all = sam_cen.variables['final_yc'][:]
-rmw_all = sam_cen.variables['final_rmw'][:]
-
-# avg values based on aircraft flight level
-if alt_plane == 3.0:
-    xc_avg = np.nanmean(xc_all[3:])
-    yc_avg = np.nanmean(yc_all[3:])
-    rmw_avg = np.nanmean(rmw_all[3:])
-elif alt_plane == 1.5:
-    xc_avg = np.nanmean(xc_all[0:2])
-    yc_avg = np.nanmean(yc_all[0:2])
-    rmw_avg = np.nanmean(rmw_all[0:2])
-else:
-    xc_avg = np.nanmean(xc_all)
-    yc_avg = np.nanmean(yc_all)
-    rmw_avg = np.nanmean(rmw_all)
-print('\n')
-print('avg xc: '+str(xc_avg)+', yc: '+str(yc_avg)+', rmw: '+str(rmw_avg))
-
-# interpolate center to lat/lon
-ncfile_cen = Dataset(cart_file)
-sam_lon_tmp = np.interp(xc_avg, ncfile_cen['x'][:].data, ncfile_cen['longitude'][:].data)
-sam_lat_tmp = np.interp(yc_avg, ncfile_cen['y'][:].data, ncfile_cen['latitude'][:].data)
-
-# check for distance from W-C center *** fix later??? *******
-if ((np.abs(sam_lon_tmp - lon_wc) > 0.4) | (np.abs(sam_lat_tmp - lat_wc) > 0.4)) & wc_good:
-    print('objective center too far from W-C, W-C good, defaulting to W-C center')
-    sam_lon = lon_wc
-    sam_lat = lat_wc
-    xc = np.interp(lon_wc, ncfile_cen['longitude'][:].data, ncfile_cen['x'][:].data)
-    yc = np.interp(lat_wc, ncfile_cen['latitude'][:].data, ncfile_cen['y'][:].data)
-    wccen = True # set this to calc rmw later
-else:
-    print('objective center seems reasonable or W-C bad')
-    sam_lon = sam_lon_tmp
-    sam_lat = sam_lat_tmp
-    xc = xc_avg
-    yc = yc_avg
-    wccen = False
-
-
-print('samurai center lat: '+str(sam_lat)+', center lon: '+str(sam_lon))
+# read simplex output, avg layer around flight altitude, interpolate to lat/lon,
+# check for distance from W-C center, assuming it's good, to see if simplex center good
+sam_lon, sam_lat, xc, yc, wccen, rmw_avg = hot_calc_centers.process_simplex_cen('samurai_center.nc', alt_plane, cart_file, 
+                                                                                [lat_wc, lon_wc], wc_good)
 
 # convert hdobs to xy
 x_plane,y_plane = xy(hdobs.lat.values,hdobs.lon.values,sam_lat,sam_lon)
 
-# name files
-sam_fn = 'samurai_XYZ_analysis.nc'
 
-#%% main code: step 3 - neural net
+#%% #### main code: step 3 - run SWANN ####
 
 print('\n')
 print('########')
@@ -294,7 +203,8 @@ ncvars = {
 }
 
 # read SAMURAI file, recenter, calculate radius, angle
-u_storm, v_storm, lon_nc, lat_nc, th, th_nc, rd, X, Y = hot_prep_data.read_netcdf(sam_dir, sam_fn, ncvars, alt_plane, [xc, yc])
+u_storm, v_storm, lon_nc, lat_nc, th, th_nc, rd, X, Y = hot_prep_data.read_netcdf(sam_dir, 'samurai_XYZ_analysis.nc', 
+                                                                                  ncvars, alt_plane, [xc, yc])
     
 # add storm motion, calculate wind speed
 wspd_earth = hot_prep_data.calc_wspd_earth(u_storm, v_storm, u_motion, v_motion, True)
@@ -331,39 +241,11 @@ print("Loaded model from disk")
 
 # make prediction with the neural net
 predict = nn_model.predict(x_data)
-predict[r_norm < 0.3] = np.nan # remove data within radius of 0.3*RMW where SWANN shouldn't be applied
-#predict[r_norm < 0.5] = np.nan
 
-# reshape arrays and mask orig missing data
-sfc_wind_pred = wspd_earth*np.reshape(predict,u_storm.shape,order='C') # multiply reduction factor and flight-level wind
-
-# grab flight-level storm-relative data and remove bad data
-mag_3km_srel = np.sqrt(u_storm**2 + v_storm**2)
-mag_3km = wspd_earth
-sfc_wind_pred[np.isnan(mag_3km)] = np.nan
-sfc_wind_pred[mag_3km*1.94 < 20] = np.nan
-sfc_wind_pred[np.isnan(mag_3km)] = np.nan
-mag_3km[(rd/sam_rmw < 0.3)] = np.nan
-#mag_3km[(rd/sam_rmw < 0.5)] = np.nan
-print('/n')
-print('predicted max sfc wind: '+str(np.nanmax(sfc_wind_pred)))
-
-# get RMW of max point
-swann_rmw = np.nanmin(rd[sfc_wind_pred == np.nanmax(sfc_wind_pred)]) # think this should just be a point location... *******
-
-# censor out boundaries with spectral ringing
-mag_3km[:4,:] = np.nan
-mag_3km[-4:,:] = np.nan
-mag_3km[:,:4] = np.nan
-mag_3km[:,-4:] = np.nan
-sfc_wind_pred[:4,:] = np.nan
-sfc_wind_pred[-4:,:] = np.nan
-sfc_wind_pred[:,:4] = np.nan
-sfc_wind_pred[:,-4:] = np.nan
-
-# convert wind speed to u and v, assuming inflow angle is 22.6, from zhang and uhlhorn 2012
-u_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.cos(th_nc) - sfc_wind_pred*np.sin(np.radians(90-22.6))*np.sin(th_nc)
-v_nc = sfc_wind_pred*np.cos(np.radians(90-22.6))*np.sin(th_nc) + sfc_wind_pred*np.sin(np.radians(90-22.6))*np.cos(th_nc)
+# postprocess model prediction (remove data < 0.3 R* or 3-km wind < 20 kts, 
+# 4 grid spaces from boundary edges due to spectral ringing, 
+# and converting to u/v assuming 22.6º inflow angle from zhang and uhlhorn)
+mag_3km, sfc_wind_pred, swann_rmw, u_nc, v_nc = hot_prep_data.postprocess_swann_sam(r_norm, wspd_earth, predict, u_storm, v_storm, rd, sam_rmw, th_nc)
 
 
 #%% ### run aircraft data through model ###
@@ -379,63 +261,42 @@ x_data_ac = model_utils.Standardize_Vars(X_ratio_ac.T)
 
 # make prediction with the neural net
 predict_ac = nn_model.predict(x_data_ac)
-predict_ac[r_norm_ac < 0.3] = np.nan
 
-# reshape arrays and mask orig missing data
-sfc_wind_pred_ac = wspd_earth_ac*predict_ac.T[0] # multiply reduction factor and flight-level wind
+# postprocess model prediction (remove data < 0.3 R* or 3-km wind < 20 kts, grab rmw, convert wind to m/s)
+sfc_wind_pred_ac, swann_rmw_ac, sfc_wind_pred_ms_ac = hot_prep_data.postprocess_swann_af(r_norm_ac, wspd_earth_ac, predict_ac, rd_ac)
 
-# grab flight-level storm-relative data and remove bad data
-mag_3km_ac = wspd_earth_ac
-sfc_wind_pred_ac[np.isnan(mag_3km_ac)] = np.nan
-sfc_wind_pred_ac[mag_3km_ac*1.94 < 20] = np.nan ##### UNITS ALREADY IN KTS
-sfc_wind_pred_ac[np.isnan(mag_3km_ac)] = np.nan
-mag_3km_ac[(rd_ac/sam_rmw < 0.3)] = np.nan # remove data within radius of 0.3*RMW where SWANN shouldn't be applied
 
-#%% main code: step 4 - prep for file saving
+#%% #### main code: step 4 - prep for file saving ####
 
-if alt_plane == 1.5:
-    sf_frac = 0.8
-elif alt_plane == 3.0:
-    sf_frac = 0.9
+# calculate vmax values needed and convert remaining vars to kts
+sam_fl_vmax, hdobs_fl_vmax, swann_sam_vmax, swann_hdobs_vmax, simp_frank = hot_prep_data.vmax_calcs_sam(alt_plane, wspd_earth, hdobs, sfc_wind_pred, sfc_wind_pred_ac)
 
-sam_fl_vmax = np.nanmax(wspd_earth*1.94) # convert to kts
-hdobs_fl_vmax = np.nanmax(hdobs.wsp) # already in kts
-swann_sam_vmax = np.nanmax(sfc_wind_pred*1.94) # convert to kts
-swann_hdobs_vmax = np.nanmax(sfc_wind_pred_ac*1.94) # convert to kts
-simp_frank = sf_frac*sam_fl_vmax
+# create text strings for image
+figtitle, textstr = hot_prep_data.create_fig_str(storm_name_2, mission, leg_start, leg_end, sam_lat, sam_lon, swann_rmw, simp_frank, 'N')
 
-figtitle = storm_name_2 + ' | ' + leg_start.strftime('%Y%m%d') + ' | ' + mission + ' | ' + leg_start.strftime('%H:%M') + ' to ' + leg_end.strftime('%H:%M') + ' UTC'
-
-textstr = '\n'.join((
-    'Inputs: HRD TDR, HDOBS',
-    'SAM Center: %.2f N, %.2f W' % (sam_lat,np.abs(sam_lon),), # currently assuming negative longitudes **********
-    'RMW: %.1f (nm)' % (swann_rmw/1.852,),
-    'Simp. Franklin: %.1f (kt)' % (simp_frank,), ))
-
-# convert coords, first to cartesian
-x_plot = X
-y_plot = Y
-
-#%% main code: step 5 - generate any images
+#%% #### main code: step 5 - generate any images ####
 
 print('\n')
 print('########')
 print('save txt file, netcdf, image')
 
 # save netcdf file
-save_files.save_2d_netcdf(lat_nc, lon_nc, u_nc, v_nc, samurai_time, analysis_time, args)
+save_files.save_2d_netcdf(lat_nc, lon_nc, u_nc, v_nc, samurai_time, analysis_time, args, outDir)
 
 # calculate wind radii and echo edges
 ### EDGES RIGHT NOW IN KM, FIX OR CONVERT TO NM
 # affect save_txt and plot_image_4pan (and AF code)
 fl_vmax = [hdobs_fl_vmax,sam_fl_vmax]
 swann_vmax = [swann_hdobs_vmax, swann_sam_vmax]
-radii_vals, radii_vals_nm, radii_vals_str, echo_edges, vmax_table = save_files.calc_radii_edges(sfc_wind_pred, x_plot, y_plot, rd, fl_vmax, swann_vmax)
+radii_vals, radii_vals_nm, radii_vals_str, echo_edges, vmax_table = save_files.calc_radii_edges(sfc_wind_pred, X, Y, rd, fl_vmax, swann_vmax)
 
 # save output text file
 save_files.save_txt(sam_lat, sam_lon, sam_fl_vmax, swann_sam_vmax, sam_rmw, simp_frank, radii_vals_nm, echo_edges,
-                    inDir, args, analysis_time, 'SAM')
+                    outDir, args, analysis_time, 'SAM')
 
 # save figure
-save_files.plot_image_4pan(x_plot, y_plot, rd, x_plane, y_plane, sfc_wind_pred, mag_3km, sfc_wind_pred_ac, hdobs, swann_rmw,
+save_files.plot_image_4pan(X, Y, rd, x_plane, y_plane, sfc_wind_pred, mag_3km, sfc_wind_pred_ac, hdobs, swann_rmw,
                            radii_vals_str, radii_vals, echo_edges, textstr, vmax_table, figtitle, args, imDir, analysis_time)
+
+# check files were created properly
+out = save_files.check_files(outDir, imDir, args, analysis_time, 'SAM')
