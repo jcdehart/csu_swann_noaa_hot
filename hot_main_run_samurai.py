@@ -33,9 +33,6 @@ parser.add_argument("ENDTIME", help="samurai end datetime (YYYYMMDDHHMM)", type=
 parser.add_argument("--MODE", default="normal", help="run mode (test or normal)", type=str)
 parser.add_argument("--VDMLAT", default="0.0", help="VDM center lat", type=float)
 parser.add_argument("--VDMLON", default="0.0", help="VDM center lon", type=float)
-parser.add_argument("--CENFN", default="gfs.tXXz.syndata.tcvitals.tm00", help="TC Vitals filename", type=str)
-parser.add_argument("--CENPATH", default="./ingest_dir/center_data", help="TC Vitals directory", type=str)
-parser.add_argument("--CENTYPE", default="tcvitals", help="center type (tcvitals or fplus)", type=str)
 args = parser.parse_args()
 
 af = False
@@ -65,11 +62,12 @@ os.system('mkdir -p '+imDir)
 # set up mode specific paths/vars
 if mode == 'normal':
     data_dir = inDir+'ingest_dir/'
+    cenpath = './ingest_dir/center_data'
     leg_start = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True)
     leg_end = pd.to_datetime(args.ENDTIME,format='%Y%m%d%H%M',utc=True)
 elif mode == 'test':
     data_dir = inDir+'testing/data/'
-    args.CENPATH = './testing/data/center_data' # overwrite default, but consider removing entirely
+    cenpath = './testing/data/center_data' # overwrite default, but consider removing entirely
     leg_start = pd.to_datetime('202510281328',format='%Y%m%d%H%M',utc=True)
     leg_end = pd.to_datetime('202510281403',format='%Y%m%d%H%M',utc=True)
     args.STARTTIME = leg_start.strftime('%Y%m%d%H%M')
@@ -82,10 +80,10 @@ print('leg start time: '+leg_start.strftime('%Y%m%d%H%M'))
 print('leg end time: '+leg_end.strftime('%Y%m%d%H%M'))
 
 # grab center from tcvitals (renaming storm_name to storm_name_2)....****
-storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motion, center_time, u_motion_1, v_motion_1, storm_dir_rot, storm_name_2 = hot_calc_centers.center_tcvitals(args)
+storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motion, center_time, u_motion_1, v_motion_1, storm_dir_rot, storm_name_2 = hot_calc_centers.center_tcvitals(args, cenpath)
 
 # grab center from adeck
-storm_lat_2, storm_lon_2, storm_intens_2, storm_dir_2, storm_motion_2, df_2, u_motion_2, v_motion_2, storm_dir_rot_2 = hot_calc_centers.center_adeck(args, samurai_time)
+storm_lat_2, storm_lon_2, storm_intens_2, storm_dir_2, storm_motion_2, df_2, u_motion_2, v_motion_2, storm_dir_rot_2 = hot_calc_centers.center_adeck(args, samurai_time, cenpath)
 
 print('\n')
 print('########')

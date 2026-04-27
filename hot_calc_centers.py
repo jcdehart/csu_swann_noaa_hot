@@ -34,8 +34,8 @@ def center_fplus(args, samurai_time):
     import pandas as pd
     from netCDF4 import Dataset
 
-    fplus_path = args.CENPATH+'/fplus/'
-    fplus_fn = args.CENFN 
+    fplus_path = './ingest_dir/fplus/'
+    fplus_fn = 'file.nc'
     
     fplus = Dataset(fplus_path+fplus_fn)
     fplus_centime = fplus['FL_WC_wind_center_time_offset']
@@ -360,16 +360,18 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
     return(hdobs, mission[0])
 
 
-def center_tcvitals(args):
+def center_tcvitals(args, cenpath):
 
     import numpy as np
     import pandas as pd
     import os
 
+    cenfn = "gfs.tXXz.syndata.tcvitals.tm00"
+
     centime_firstguess = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True).floor('6H')
     tc_vital = []
-    tcvitals_path = args.CENPATH+'/tcvitals/'+centime_firstguess.strftime('%Y%m%d')+'/'
-    tcvitals_fn = args.CENFN.replace('XX',centime_firstguess.strftime('%H'))
+    tcvitals_path = cenpath+'/tcvitals/'+centime_firstguess.strftime('%Y%m%d')+'/'
+    tcvitals_fn = cenfn.replace('XX',centime_firstguess.strftime('%H'))
 
     if args.STORM[0:2] == 'AL':
         basin = 'L'
@@ -389,8 +391,8 @@ def center_tcvitals(args):
 
         # reset path and names and try for time 6 hours earlier
         centime_secondguess = centime_firstguess - pd.Timedelta(hours=6)
-        tcvitals_path_early = args.CENPATH+'/tcvitals/'+centime_secondguess.strftime('%Y%m%d')+'/'
-        tcvitals_fn_early = args.CENFN.replace('XX',centime_secondguess.strftime('%H'))
+        tcvitals_path_early = cenpath+'/tcvitals/'+centime_secondguess.strftime('%Y%m%d')+'/'
+        tcvitals_fn_early = cenfn.replace('XX',centime_secondguess.strftime('%H'))
         
         if os.path.isfile(tcvitals_path_early+tcvitals_fn_early):
             file = open(tcvitals_path_early+tcvitals_fn_early)
@@ -400,7 +402,7 @@ def center_tcvitals(args):
         else:
             # assuming that data is in the archive
             print('neither time exists - moving to 2023 archive')
-            tcvitals_path_archive = args.CENPATH+'/tcvitals/archive/'
+            tcvitals_path_archive = cenpath+'/tcvitals/archive/'
             tcvitals_fn_archive = 'syndat_tcvitals.'+centime_firstguess.strftime('%Y')
             file = open(tcvitals_path_archive+tcvitals_fn_archive)
 
@@ -448,7 +450,7 @@ def center_tcvitals(args):
     return storm_lat, storm_lon, storm_intens, storm_rmw, storm_dir, storm_motion, center_time, u_motion, v_motion, storm_dir_rot, storm_name
 
 
-def center_adeck(args, samurai_time):
+def center_adeck(args, samurai_time, cenpath):
 
     import pandas as pd
     import numpy as np
@@ -456,7 +458,7 @@ def center_adeck(args, samurai_time):
 
     centime = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True).floor('6H')
     adeck = []
-    adeck_path = args.CENPATH+'/adeck/'+centime.strftime('%Y')+'/'
+    adeck_path = cenpath+'/adeck/'+centime.strftime('%Y')+'/'
     adeck_fn = 'a'+args.STORM.lower()+centime.strftime('%Y')+'.dat'
 
     system('gunzip '+adeck_path+adeck_fn+'.gz')
