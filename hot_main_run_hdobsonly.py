@@ -60,12 +60,12 @@ ml_dir = inDir+'ml_model/'
 ml_file = 'HS24_SCL_2DNN_model_v2.h5'
 json_fn = 'HS24_SCL_2DNN_model_v2.json'
 hdobs_ingest_dir = inDir+'hdobs_parent/hdobs_input/'
-output_dir = inDir+ext+'nn_testing/'
-imDir = inDir+ext+'images/'
+outDir = inDir+ext
+imDir = outDir+'images/'
 
 # make sure dirs exist
 os.system('mkdir -p '+hdobs_ingest_dir)
-os.system('mkdir -p '+output_dir)
+os.system('mkdir -p '+outDir)
 os.system('mkdir -p '+imDir)
 
 # set up mode specific paths/vars
@@ -205,7 +205,7 @@ print('########')
 print('save txt file, netcdf, image')
 
 # save netcdf file
-save_files.save_1d_netcdf(hdobs, sfc_wind_pred_ms, analysis_time, args)
+save_files.save_1d_netcdf(hdobs, sfc_wind_pred_ms, analysis_time, args, outDir)
 
 # calculate wind radii and echo edges
 ### EDGES RIGHT NOW IN KM, FIX OR CONVERT TO NM
@@ -217,8 +217,11 @@ radii_vals, radii_vals_nm, radii_vals_str, echo_edges, vmax_table = save_files.c
 
 # save text file
 save_files.save_txt(storm_lat, storm_lon, hdobs_fl_vmax, swann_hdobs_vmax, swann_rmw, simp_frank, radii_vals_nm, echo_edges,
-                    inDir, args, analysis_time, 'HDOBS')
+                    outDir, args, analysis_time, 'HDOBS')
 
 # save image
 save_files.plot_image_2pan(x_plane, y_plane, sfc_wind_pred, hdobs, radii_vals_str, radii_vals, echo_edges, 
                            textstr, vmax_table, figtitle, args, imDir, analysis_time)
+
+# check files were created properly
+out = save_files.check_files(outDir, imDir, args, analysis_time, 'HDOBS')

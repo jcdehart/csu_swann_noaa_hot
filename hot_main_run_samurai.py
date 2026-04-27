@@ -54,12 +54,12 @@ json_fn = 'HS24_SCL_2DNN_model_v2.json'
 sam_dir_base = inDir+'samurai_parent/'
 sam_ingest_dir = inDir+'samurai_parent/samurai_input/'
 sam_bin = '/bell-scratch/mmbell/hot/samurai-hot/release/bin/samurai'
-output_dir = inDir+ext+'nn_testing/'
-imDir = inDir+ext+'images/'
+outDir = inDir+ext
+imDir = outDir+'images/'
 
 # make sure dirs exist
 os.system('mkdir -p '+sam_ingest_dir)
-os.system('mkdir -p '+output_dir)
+os.system('mkdir -p '+outDir)
 os.system('mkdir -p '+imDir)
 
 # set up mode specific paths/vars
@@ -283,7 +283,7 @@ print('########')
 print('save txt file, netcdf, image')
 
 # save netcdf file
-save_files.save_2d_netcdf(lat_nc, lon_nc, u_nc, v_nc, samurai_time, analysis_time, args)
+save_files.save_2d_netcdf(lat_nc, lon_nc, u_nc, v_nc, samurai_time, analysis_time, args, outDir)
 
 # calculate wind radii and echo edges
 ### EDGES RIGHT NOW IN KM, FIX OR CONVERT TO NM
@@ -294,8 +294,11 @@ radii_vals, radii_vals_nm, radii_vals_str, echo_edges, vmax_table = save_files.c
 
 # save output text file
 save_files.save_txt(sam_lat, sam_lon, sam_fl_vmax, swann_sam_vmax, sam_rmw, simp_frank, radii_vals_nm, echo_edges,
-                    inDir, args, analysis_time, 'SAM')
+                    outDir, args, analysis_time, 'SAM')
 
 # save figure
 save_files.plot_image_4pan(X, Y, rd, x_plane, y_plane, sfc_wind_pred, mag_3km, sfc_wind_pred_ac, hdobs, swann_rmw,
                            radii_vals_str, radii_vals, echo_edges, textstr, vmax_table, figtitle, args, imDir, analysis_time)
+
+# check files were created properly
+out = save_files.check_files(outDir, imDir, args, analysis_time, 'SAM')
