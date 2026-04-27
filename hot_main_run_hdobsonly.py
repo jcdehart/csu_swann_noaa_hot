@@ -205,7 +205,7 @@ print('########')
 print('save txt file, netcdf, image')
 
 # save netcdf file
-save_files.save_1d_netcdf(hdobs, sfc_wind_pred_ms, samurai_time, args)
+save_files.save_1d_netcdf(hdobs, sfc_wind_pred_ms, analysis_time, args)
 
 # calculate wind radii and echo edges
 ### EDGES RIGHT NOW IN KM, FIX OR CONVERT TO NM
@@ -221,4 +221,4 @@ save_files.save_txt(storm_lat, storm_lon, hdobs_fl_vmax, swann_hdobs_vmax, swann
 
 # save image
 save_files.plot_image_2pan(x_plane, y_plane, sfc_wind_pred, hdobs, radii_vals_str, radii_vals, echo_edges, 
-                           textstr, vmax_table, figtitle, args, imDir, samurai_time)
+                           textstr, vmax_table, figtitle, args, imDir, analysis_time)

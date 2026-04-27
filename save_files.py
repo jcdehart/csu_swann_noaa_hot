@@ -82,7 +82,7 @@ def save_txt(lat, lon, fl_vmax, swann_vmax, rmw, simp_frank, radii, edges, inDir
         f.writelines(lines)
         f.close()
 
-def save_1d_netcdf(hdobs, wsp_nc, samurai_time, args):
+def save_1d_netcdf(hdobs, wsp_nc, analysis_time, args):
 
     # save output data as NetCDF (adapted from MetPy documentation)
 
@@ -91,7 +91,7 @@ def save_1d_netcdf(hdobs, wsp_nc, samurai_time, args):
     import pandas as pd
 
     # open file
-    ncfile_sfc = Dataset('./nn_output/HOT_HDOBS_sfc_analysis_'+args.STORM+'_'+samurai_time.strftime('%Y%m%d%H%M')+'.nc',mode='w',format='NETCDF4') 
+    ncfile_sfc = Dataset('./nn_output/HOT_HDOBS_sfc_analysis_'+args.STORM+'_'+analysis_time+'.nc',mode='w',format='NETCDF4') 
         
     # define dimensions
     time_dim = ncfile_sfc.createDimension('time', len(hdobs.dt)) # unlimited axis (can be appended to)
@@ -175,8 +175,9 @@ def save_2d_netcdf(lat_nc, lon_nc, u_nc, v_nc, samurai_time, analysis_time, args
 
     ncfile_sfc.close()
 
+
 def plot_image_2pan(x_plane, y_plane, sfc_wind_pred, hdobs,
-               radii_vals_str, radii_vals, echo_edges, textstr, vmax_table, figtitle, args, imDir, samurai_time):
+               radii_vals_str, radii_vals, echo_edges, textstr, vmax_table, figtitle, args, imDir, analysis_time):
 
     import matplotlib
     matplotlib.use('Agg')
@@ -231,7 +232,7 @@ def plot_image_2pan(x_plane, y_plane, sfc_wind_pred, hdobs,
     f_ax4.grid(True)
     f_ax4.set_ylabel('wind speed (kt)')
     plt.suptitle(figtitle,y=0.94)
-    fig.savefig(imDir+args.STORM+'_'+samurai_time.strftime(format='%Y%m%d%H%M')+'_2pan.png', dpi=200, bbox_inches='tight')
+    fig.savefig(imDir+args.STORM+'_'+analysis_time+'_2pan.png', dpi=200, bbox_inches='tight')
 
 
 def plot_image_4pan(x_plot, y_plot, rd, x_plane, y_plane, sfc_wind_pred, mag_3km, sfc_wind_pred_ac, hdobs, swann_rmw,
@@ -349,4 +350,14 @@ def plot_image_4pan(x_plot, y_plot, rd, x_plane, y_plane, sfc_wind_pred, mag_3km
     cb3 = plt.colorbar(mappable=c3,cax=fig.add_subplot(gs[1,2]), orientation='horizontal', ticks=[0.75, 0.85, 0.95, 1.05])
     cb3.ax.set_title('');
     fig.savefig(imDir+args.STORM+'_'+analysis_time+'_4pan.png', dpi=200, bbox_inches='tight')
+
+
+def check_files(analysis_time):
+
+    from pathlib import Path
+
+    files = ["data.csv", "config.json", imDir+args.STORM+'_'+analysis_time+'_4pan.png']
+
+    # Check if ALL files exist
+    all_exist = all(Path(f).is_file() for f in files)
 
