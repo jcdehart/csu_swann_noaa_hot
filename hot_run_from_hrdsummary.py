@@ -54,15 +54,21 @@ analysis_time = (starttime + ((endtime-starttime)/2).round('min')).strftime('%Y%
 # create directories and untar hrd files
 os.system('mkdir -p ./samurai_parent/hrd_output')
 os.system('tar -xf '+file+' -C ./samurai_parent/hrd_output/')
+os.system('rm -f ./samurai_parent/hrd_output/*.gz ./samurai_parent/hrd_output/*files* ./samurai_parent/hrd_output/parameters* ./samurai_parent/hrd_output/run')
 flight_id, storm_id, mission_id, storm_name, lat, lon = read_hrdsumm('./samurai_parent/hrd_output/summary')
 
 # check if files were created already
 out = save_files.check_files(outDir, imDir, storm_id[:4], analysis_time, 'SAM')
 
 if out == True:
-    print('file processed')
+    print('files: Y')
+    print(storm_id[:4])
+    print(starttime.strftime('%Y%m%d%H%M'))
+    print(endtime.strftime('%Y%m%d%H%M'))
+    print(lat)
+    print(lon)
 elif out == False:
-    print('no file')
+    print('files: N')
     print(storm_id[:4])
     print(starttime.strftime('%Y%m%d%H%M'))
     print(endtime.strftime('%Y%m%d%H%M'))

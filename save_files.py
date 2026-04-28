@@ -376,10 +376,10 @@ def check_files(outDir, imDir, storm, analysis_time, analysis_type):
     all_exist = all(Path(f).is_file() for f in files)
 
     if all_exist == True:
-        print('All files exist.')
+        print('all files exist.')
         good = True
     elif all_exist == False:
-        print('At least one file is missing.')
+        print('>=1 file missing.')
         good = False
 
     return good
