@@ -31,7 +31,7 @@ imDir = outDir+'images/'
 if args.path is not None:
     file = args.path
 else:
-    file = './ingest_dir/center_data/hrd_tar/2025/251028H1_1328_1403_analysis.tar'
+    file = './ingest_dir/hrd_tar/2025/251028H1_1328_1403_analysis.tar'
 
 # grab latest file (will need to add modes most likely ******)
 filename = file.strip().split('/')[-1]
