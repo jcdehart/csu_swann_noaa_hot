@@ -222,4 +222,4 @@ save_files.plot_image_2pan(x_plane, y_plane, sfc_wind_pred, hdobs, radii_vals_st
                            textstr, vmax_table, figtitle, args, imDir, analysis_time)
 
 # check files were created properly
-out = save_files.check_files(outDir, imDir, args, analysis_time, 'HDOBS')
+out = save_files.check_files(outDir, imDir, args.STORM, analysis_time, 'HDOBS')

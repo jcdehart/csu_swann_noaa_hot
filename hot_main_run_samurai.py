@@ -299,4 +299,4 @@ save_files.plot_image_4pan(X, Y, rd, x_plane, y_plane, sfc_wind_pred, mag_3km, s
                            radii_vals_str, radii_vals, echo_edges, textstr, vmax_table, figtitle, args, imDir, analysis_time)
 
 # check files were created properly
-out = save_files.check_files(outDir, imDir, args, analysis_time, 'SAM')
+out = save_files.check_files(outDir, imDir, args.STORM, analysis_time, 'SAM')

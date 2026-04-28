@@ -359,18 +359,18 @@ def plot_image_4pan(x_plot, y_plot, rd, x_plane, y_plane, sfc_wind_pred, mag_3km
     fig.savefig(imDir+args.STORM+'_'+analysis_time+'_4pan.png', dpi=200, bbox_inches='tight')
 
 
-def check_files(outDir, imDir, args, analysis_time, analysis_type):
+def check_files(outDir, imDir, storm, analysis_time, analysis_type):
 
     from pathlib import Path
 
     if analysis_type == 'HDOBS':
-        files = [outDir+'txt_output/'+args.STORM+'_'+analysis_time+'_data_hdobsonly.txt',
-                 outDir+'nn_output/HOT_HDOBS_sfc_analysis_'+args.STORM+'_'+analysis_time+'.nc',
-                 imDir+args.STORM+'_'+analysis_time+'_2pan.png']
+        files = [outDir+'txt_output/'+storm+'_'+analysis_time+'_data_hdobsonly.txt',
+                 outDir+'nn_output/HOT_HDOBS_sfc_analysis_'+storm+'_'+analysis_time+'.nc',
+                 imDir+storm+'_'+analysis_time+'_2pan.png']
     elif analysis_type == 'SAM':
-        files = [outDir+'txt_output/'+args.STORM+'_'+analysis_time+'_data_samurai.txt', 
-                outDir+'nn_output/HOT_SAMURAI_sfc_analysis_'+args.STORM+'_'+analysis_time+'.nc', 
-                imDir+args.STORM+'_'+analysis_time+'_4pan.png']
+        files = [outDir+'txt_output/'+storm+'_'+analysis_time+'_data_samurai.txt', 
+                outDir+'nn_output/HOT_SAMURAI_sfc_analysis_'+storm+'_'+analysis_time+'.nc', 
+                imDir+storm+'_'+analysis_time+'_4pan.png']
 
     # Check if ALL files exist
     all_exist = all(Path(f).is_file() for f in files)

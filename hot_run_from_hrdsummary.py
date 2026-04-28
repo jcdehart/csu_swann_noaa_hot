@@ -13,7 +13,7 @@ import os
 import save_files
 
 parser = argparse.ArgumentParser()
-parser.add_argument("path", help="HRD summary file path", type=str)
+parser.add_argument("--path", help="HRD summary file path", type=str)
 parser.add_argument("--MODE", default="normal", help="run mode (test or normal)", type=str)
 args = parser.parse_args()
 
@@ -28,7 +28,7 @@ inDir = './'
 outDir = inDir+ext
 imDir = outDir+'images/'
 
-if (len(args.path) > 0):
+if args.path is not None:
     file = args.path
 else:
     file = './ingest_dir/center_data/hrd_tar/2025/251028H1_1328_1403_analysis.tar'
@@ -50,15 +50,16 @@ endtime = pd.to_datetime(yymmdd, format='%Y%m%d') + td2
 
 analysis_time = (starttime + ((endtime-starttime)/2).round('min')).strftime('%Y%m%d%H%M')
 
+os.system('tar -xf '+file)
+flight_id, storm_id, mission_id, storm_name, lat, lon = read_hrdsumm(file[:-4]+'/summary')
+
 # check if files were created already
-out = save_files.check_files(outDir, imDir, args, analysis_time, 'SAM')
+out = save_files.check_files(outDir, imDir, storm_id[:4], analysis_time, 'SAM')
 
 if out == True:
     print('file already processed.')
 elif out == False:
     print('files do not exist, proceeding.')
-    os.system('tar -xf '+file)
-    flight_id, storm_id, mission_id, storm_name, lat, lon = read_hrdsumm(file[:-4]+'/summary')
     print(storm_id[:4])
     print(starttime.strftime('%Y%m%d%H%M'))
     print(endtime.strftime('%Y%m%d%H%M'))
