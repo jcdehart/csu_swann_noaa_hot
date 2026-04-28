@@ -31,7 +31,8 @@ imDir = outDir+'images/'
 if args.path is not None:
     file = args.path
 else:
-    file = './ingest_dir/hrd_tar/2025/251028H1_1328_1403_analysis.tar'
+    file = './ingest_dir/hrd_tar/2026/260421I1_1514_1520_analysis.tar'
+    # file = './ingest_dir/hrd_tar/2025/251028H1_1328_1403_analysis.tar'
 
 # grab latest file (will need to add modes most likely ******)
 filename = file.strip().split('/')[-1]
@@ -59,9 +60,9 @@ flight_id, storm_id, mission_id, storm_name, lat, lon = read_hrdsumm('./samurai_
 out = save_files.check_files(outDir, imDir, storm_id[:4], analysis_time, 'SAM')
 
 if out == True:
-    print('file already processed.')
+    print('file processed')
 elif out == False:
-    print('files do not exist, proceeding.')
+    print('no file')
     print(storm_id[:4])
     print(starttime.strftime('%Y%m%d%H%M'))
     print(endtime.strftime('%Y%m%d%H%M'))
