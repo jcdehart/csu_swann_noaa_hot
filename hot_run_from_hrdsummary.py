@@ -50,8 +50,10 @@ endtime = pd.to_datetime(yymmdd, format='%Y%m%d') + td2
 
 analysis_time = (starttime + ((endtime-starttime)/2).round('min')).strftime('%Y%m%d%H%M')
 
-os.system('tar -xf '+file)
-flight_id, storm_id, mission_id, storm_name, lat, lon = read_hrdsumm(file[:-4]+'/summary')
+# create directories and untar hrd files
+os.system('mkdir -p ./samurai_parent/hrd_output')
+os.system('tar -xf '+file+' -C ./samurai_parent/hrd_output/')
+flight_id, storm_id, mission_id, storm_name, lat, lon = read_hrdsumm('./samurai_parent/hrd_output/summary')
 
 # check if files were created already
 out = save_files.check_files(outDir, imDir, storm_id[:4], analysis_time, 'SAM')
