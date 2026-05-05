@@ -1,2 +1,3 @@
 samurai_parent/
 ingest_dir/
+__pycache__/*
