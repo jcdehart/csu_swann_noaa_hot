@@ -552,6 +552,7 @@ def center_adeck(args, samurai_time, cenpath):
     # pandas version weirdness?????
     try:
         df2 = df2.interpolate()
+        df2['DIR2'] = np.round(np.arctan2(df2['sin'],df2['cos'])*180./np.pi)
     except:
         df2['VMAX'] = df2['VMAX'].interpolate()   
         df2['RAD1'] = df2['RAD1'].interpolate()   
