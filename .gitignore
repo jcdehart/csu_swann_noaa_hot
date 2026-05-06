@@ -4,3 +4,4 @@ ingest_dir/*
 __pycache__/*
 testing/output/*
 testing/log_files/*
+.DS_Store
