@@ -66,8 +66,13 @@ The input data should be organized in the following manner:
 ## Needed datasets
 
 [NHC A-decks](https://ftp.nhc.noaa.gov/atcf/aid_public/)
+
 HDOBs (2025): [Atlantic](https://www.nhc.noaa.gov/archive/recon/2025/AHONT1/), [East Pacific](https://www.nhc.noaa.gov/archive/recon/2025/AHOPN1/)
+
 [HRD QC'd Radials](https://www.aoml.noaa.gov/ftp/pub/hrd/reasor/emclist/)
+
 [HRD tarballs](https://www.aoml.noaa.gov/ftp/pub/hrd/reasor/realtime_analyses/)
+
 VDMs (2025): [Atlantic](https://www.nhc.noaa.gov/archive/recon/2025/REPNT2/), [East Pacific](https://www.nhc.noaa.gov/archive/recon/2025/REPPN2/)
+
 [tcvitals (atmos)](https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/)
