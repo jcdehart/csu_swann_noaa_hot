@@ -1,2 +1,6 @@
-samurai_parent/
-ingest_dir/
+samurai_parent/*
+hdobs_parent/*
+ingest_dir/*
+__pycache__/*
+testing/output/*
+testing/log_files/*

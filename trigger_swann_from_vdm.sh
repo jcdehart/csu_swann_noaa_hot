@@ -1,6 +1,6 @@
 #!/bin/bash
 
-outputString=$(python hot_run_from_vdm.py)
+outputString=$(python hot_run_from_vdm.py --path $FILEPATH)
 
 set $outputString
 

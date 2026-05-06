@@ -1,0 +1,11 @@
+name: swann
+channels:
+  - conda-forge
+dependencies:
+  - tensorflow
+  - ca-certificates
+  - certifi
+  - openssl
+  - pandas
+  - matplotlib
+  - netcdf4

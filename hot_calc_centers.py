@@ -118,6 +118,39 @@ def read_vdm(file, mode):
         print(lon)
     elif mode == 'full':
         return (vdm_center_time, lat, lon, storm_code, storm_name, flight_code)
+    
+
+def read_hrdsumm(file):
+    
+    import pandas
+    import re
+    
+    ## open file and read relevant lines
+    # *** add other lines later ***
+    f = open(file, "r")
+    summ = f.readlines()
+    summ_flid = summ[0]
+    summ_stormid = summ[1]
+    summ_missid = summ[2]
+    summ_cen = summ[10]
+    # summ_good = summ[15] # might add this in later
+    
+    ## get flight, storm names
+    
+    flid = summ_flid.split()[2]
+    stormid = re.sub(r'[^a-zA-Z0-9]', '', summ_stormid.split()[3])
+    mission = summ_missid.split()
+    missid = mission[2]
+    storm_name = mission[3]
+        
+    ## extract lat lon
+    
+    summ_loc = summ_cen.split()
+    lat = float(re.sub(r'[^a-zA-Z0-9.-]', '', summ_loc[3]))
+    lon = float(re.sub(r'[^a-zA-Z0-9.-]', '', summ_loc[4]))
+        
+    
+    return (flid, stormid, missid, storm_name, lat, lon)
 
 
 def run_wc(hdobs):
@@ -519,6 +552,7 @@ def center_adeck(args, samurai_time, cenpath):
     # pandas version weirdness?????
     try:
         df2 = df2.interpolate()
+        df2['DIR2'] = np.round(np.arctan2(df2['sin'],df2['cos'])*180./np.pi)
     except:
         df2['VMAX'] = df2['VMAX'].interpolate()   
         df2['RAD1'] = df2['RAD1'].interpolate()   

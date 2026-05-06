@@ -11,7 +11,7 @@ import argparse
 # grab info from tcvitals or flight+ file
 
 parser = argparse.ArgumentParser()
-parser.add_argument("path", help="VDM file path", type=str)
+parser.add_argument("--path", help="VDM file path", type=str)
 args = parser.parse_args()
 
 if (len(args.path) > 0):
