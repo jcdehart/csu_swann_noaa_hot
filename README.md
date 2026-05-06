@@ -2,7 +2,7 @@
 
 This repository holds the scripts that run the CSU Surface Winds from Aircraft with a Neural Network (SWANN) model. The model is described in [DesRosiers et al. (2025)](https://doi.org/10.1029/2025JH000584). 
 
-## Running SWANN via Python
+## Running SWANN directly from Python scripts
 
 For help running the python scripts directly, please refer to the instructions below.
 
@@ -25,6 +25,7 @@ example: `python hot_main_run_hdobsonly.py AL10 202308281059 202308281149 A`
 To test the code, use the following commands:
 
 `python hot_main_run_samurai.py ALXX xxxxxxxxxxxx yyyyyyyyyyyy --MODE test`
+
 `python hot_main_run_hdobsonly.py ALXX xxxxxxxxxxxx yyyyyyyyyyyy A --MODE test`
 
 Output files will be saved to the ./testing/output directory. Expected output files are provided in the ./testing/output_expected directory.
