@@ -13,7 +13,8 @@ import pandas as pd
 import argparse
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-from tensorflow.keras.models import model_from_json
+from tf_keras.models import model_from_json
+# from tensorflow.keras.models import load_model, model_from_json
 import model_utils
 from geo_conversion import xy
 import hot_grab_files
@@ -175,6 +176,7 @@ json_file = open(ml_dir+json_fn, 'r')
 loaded_model_json = json_file.read()
 json_file.close()
 nn_model = model_from_json(loaded_model_json)
+# nn_model = load_model(ml_dir+ml_file)
 
 # load weights into new model
 nn_model.load_weights(ml_dir+ml_file)
