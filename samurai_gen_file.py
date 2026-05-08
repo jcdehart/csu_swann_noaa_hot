@@ -35,9 +35,9 @@ def make_cen_file(ref_time, sam_start, sam_end, lat, lon, u, v, outDir):
 
     # set up date range array, beginning depends on when earliest time is
     if (init_time < start_time):
-        dt_range = pd.date_range(start=init_time, end=end_time, freq='S')
+        dt_range = pd.date_range(start=init_time, end=end_time, freq='s')
     else:
-        dt_range = pd.date_range(start=start_time, end=end_time, freq='S')
+        dt_range = pd.date_range(start=start_time, end=end_time, freq='s')
 
     cen_time = pd.DataFrame(dt_range.strftime('%H%M%S'), columns=['cen_time'])
     cen_time['v'] = v
