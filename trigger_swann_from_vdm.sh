@@ -1,5 +1,9 @@
 #!/bin/bash
 
+conda deactivate
+conda deactivate
+conda activate swann_py312
+
 outputString=$(python hot_run_from_vdm.py --path $FILEPATH)
 
 set $outputString

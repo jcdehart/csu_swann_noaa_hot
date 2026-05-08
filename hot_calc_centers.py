@@ -401,7 +401,7 @@ def center_tcvitals(args, cenpath):
 
     cenfn = "gfs.tXXz.syndata.tcvitals.tm00"
 
-    centime_firstguess = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True).floor('6H')
+    centime_firstguess = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True).floor('6h')
     tc_vital = []
     tcvitals_path = cenpath+'/tcvitals/'+centime_firstguess.strftime('%Y%m%d')+'/'
     tcvitals_fn = cenfn.replace('XX',centime_firstguess.strftime('%H'))
@@ -489,7 +489,7 @@ def center_adeck(args, samurai_time, cenpath):
     import numpy as np
     from os import system
 
-    centime = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True).floor('6H')
+    centime = pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True).floor('6h')
     adeck = []
     adeck_path = cenpath+'/adeck/'+centime.strftime('%Y')+'/'
     adeck_fn = 'a'+args.STORM.lower()+centime.strftime('%Y')+'.dat'

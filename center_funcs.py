@@ -33,8 +33,8 @@ def find_peaks(wspd_f, wdir_f, dval_f, u_tc, v_tc):
     wdir_rel = 270 - 180.0 * np.arctan2(v_rel, u_rel) / np.pi
     ind = np.where(wdir_rel >= 360.0)
     wdir_rel[ind] = wdir_rel[ind] - 360.0
-    ind = np.where(wdir_f == 360.0)
-    wdir_f[ind] = 0.0
+    # ind = np.where(wdir_f == 360.0)
+    # wdir_f[ind] = 0.0
     ind = np.logical_and(np.abs(u_rel)==0, np.abs(v_rel)==0)
     wdir_rel[ind] = 0.0
     #
@@ -60,7 +60,7 @@ def find_peaks(wspd_f, wdir_f, dval_f, u_tc, v_tc):
     return peaks, properties, willfunc, wdir_rel, prominent
 
 
-def refine_peaks_nhc(peaks, approaches, dt_f, latsub, lonsub, date_bt, lat_bt, lon_bt):
+def refine_peaks_nhc(peaks, approaches, dt_f, lat_f, lon_f, date_bt, lat_bt, lon_bt):
     
     peaks_refined = np.array([])
     
@@ -264,7 +264,7 @@ def read_nhc(file_bt):
     return lat_bt, lon_bt, datetime_bt
 
 
-def write_ncfile(lon_wc, lat_wc, yr_wc, mo_wc, da_wc, hr_wc, mn_wc, sc_wc):
+def write_ncfile(file_out, lon_wc, lat_wc, yr_wc, mo_wc, da_wc, hr_wc, mn_wc, sc_wc):
 
     # Put resulting data into output file
     ncenters = len(lon_wc)
@@ -330,7 +330,7 @@ def run_wc_code(file_in):
     approaches = len(peaks)
 
     # refine based on NHC best track/realtime
-    #peaks_refined = refine_peaks_nhc(peaks, approaches, dt_f, latsub, lonsub, date_bt, lat_bt, lon_bt):
+    #peaks_refined = refine_peaks_nhc(peaks, approaches, dt_f, lat_f, lon_f, date_bt, lat_bt, lon_bt):
     #peaks_refined = peaks_refined.astype(int)
 
     # if not refining based on NHC... (#### fix in future)
