@@ -14,7 +14,6 @@ import argparse
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from tf_keras.models import model_from_json
-# from tensorflow.keras.models import load_model, model_from_json
 import model_utils
 from geo_conversion import xy
 import hot_grab_files
