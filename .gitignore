@@ -1,7 +1,12 @@
 samurai_parent/*
 hdobs_parent/*
+images/*
 ingest_dir/*
+nn_output/*
+output_files/*
 __pycache__/*
+slurm/*
 testing/output/*
 testing/log_files/*
+txt_output/* 
 .DS_Store
