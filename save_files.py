@@ -115,10 +115,10 @@ def save_1d_netcdf(hdobs, wsp_nc, analysis_time, args, outDir):
     nctime.units = 'seconds since 1970-01-01'
     nctime.long_name = 'time'
     # Define a 3D variable to hold the data
-    ncwspd = ncfile_sfc.createVariable('u_wind',np.float64,('time')) # note: unlimited dimension is leftmost
+    ncwspd = ncfile_sfc.createVariable('wind',np.float64,('time')) # note: unlimited dimension is leftmost
     ncwspd.units = 'm s-1' 
     ncwspd.standard_name = 'wind_speed' # this is a CF standard name
-    ncwspd.long_name = 'U component of the predicted surface wind'
+    ncwspd.long_name = 'Magnitude of the predicted surface wind'
 
     # save data to arrays 
     nclat[:] = hdobs.lat.values
