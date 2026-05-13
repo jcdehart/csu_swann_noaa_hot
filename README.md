@@ -76,3 +76,9 @@ HDOBs (2025): [Atlantic](https://www.nhc.noaa.gov/archive/recon/2025/AHONT1/), [
 VDMs (2025): [Atlantic](https://www.nhc.noaa.gov/archive/recon/2025/REPNT2/), [East Pacific](https://www.nhc.noaa.gov/archive/recon/2025/REPPN2/)
 
 [tcvitals (atmos)](https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/)
+
+## Recommended environment setup
+
+`conda create --name swann_py312 python=3.12`
+`conda activate swann_py312`
+`pip install tensorflow pandas matplotlib netcdf4 scipy tf_keras`
