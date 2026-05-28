@@ -28,7 +28,7 @@ inDir = './'
 outDir = inDir+ext
 imDir = outDir+'images/'
 
-if (len(args.path) > 0):
+if args.path is not None:
     file = args.path
 else:
     file = './ingest_dir/center_data/vdm/2025/REPNT2-KWBC.202508181148.txt'
