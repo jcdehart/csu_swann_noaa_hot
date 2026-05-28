@@ -6,8 +6,22 @@ conda activate swann_py312
 
 outputString=$(python hot_run_from_vdm.py --path $FILEPATH)
 
-set $outputString
+# move different lines to different indices
+mapfile -t output_lines <<< "$outputString"
 
-echo "python hot_main_run_hdobsonly.py $1 $2 $3 A --VDMLAT $4 --VDMLON $5 > ./output_files/$1_$2.log"
+# set var names
+filesexist=${output_lines[-6]}
+stormid=${output_lines[-5]}
+legstart=${output_lines[-4]}
+legend=${output_lines[-3]}
+lat=${output_lines[-2]} 
+lon=${output_lines[-1]} 
 
-python hot_main_run_hdobsonly.py $1 $2 $3 A --VDMLAT $4 --VDMLON $5 > ./output_files/$1_$2.log
+# add check for winter storms!! ******
+
+if [[ "$1" == 'N' ]]; then 
+    echo "python hot_main_run_hdobsonly.py $stormid $legstart $legend A --VDMLAT $lat --VDMLON $lon > ./output_files/$stormid_$legstart.log"
+    python python hot_main_run_hdobsonly.py $stormid $legstart $legend A --VDMLAT $lat --VDMLON $lon > ./output_files/$stormid_$legstart.log
+else
+    echo "files already processed: $stormid $legstart $legend"
+fi

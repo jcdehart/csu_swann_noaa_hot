@@ -7,17 +7,22 @@ conda activate swann_py312
 # read and process hrd summary file
 outputString=$(python hot_run_from_hrdsummary.py --path $FILEPATH)
 
-# grab only the last 5 words (processed, storm code, start time, end time, lat, lon)
-parsedString="${outputString[@]: -5}"
+# move different lines to different indices
+mapfile -t output_lines <<< "$outputString"
 
-# set to numeric variables
-set $parsedString
+# set var names
+filesexist=${output_lines[-6]}
+stormid=${output_lines[-5]}
+legstart=${output_lines[-4]}
+legend=${output_lines[-3]}
+lat=${output_lines[-2]} # not using right now, might add later ******
+lon=${output_lines[-1]} # not using right now, might add later ******
 
 # also add in center location? ******
 # add check for winter storms!! ******
-if [[ "$1" == 'N' ]]; then 
-    echo "python hot_main_run_hdobsonly.py $2 $3 $4 > ./output_files/$2_$3.log"
-    python hot_main_run_hdobsonly.py $2 $3 $4 > ./output_files/$2_$3.log
+if [[ "$filesexist" == 'N' ]]; then 
+    echo "python hot_main_run_samurai.py $stormid $legstart $legend > ./output_files/$stormid_$legstart.log"
+    python hot_main_run_samurai.py $stormid $legstart $legend > ./output_files/$stormid_$legstart.log
 else
-    echo "files already processed: $2 $3 $4"
+    echo "files already processed: $stormid $legstart $legend"
 fi
