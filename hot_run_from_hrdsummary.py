@@ -11,6 +11,7 @@ import argparse
 import pandas as pd
 import os
 import save_files
+import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--path", help="HRD summary file path", type=str)
@@ -63,8 +64,20 @@ flight_id, storm_id, mission_id, storm_name, lat, lon = read_hrdsumm('./samurai_
 # check if files were created already
 out = save_files.check_files(outDir, imDir, storm_id[:4], analysis_time, 'SAM')
 
+# check if flight is actually a hurricane flight
+# no invests, PTCs, training, or winter storm flights
+flight_ignore = np.isin(storm_name, ['INVEST', 'TRAIN', 'CYCLONE']) # True if storm name matches these
+ptc = storm_name.startswith('PTC') # True if storm name starts with PTC 
+stormnum = storm_id[2:4].isalpha() # True if 3rd/4th characters in storm id are letters
+
+if flight_ignore | ptc | stormnum:
+    tc_check = 'other'
+else:
+    tc_check = 'TC'
+
 if out == True:
     print('files: Y')
+    print(tc_check)
     print(storm_id[:4])
     print(starttime.strftime('%Y%m%d%H%M'))
     print(endtime.strftime('%Y%m%d%H%M'))
@@ -72,6 +85,7 @@ if out == True:
     print(lon)
 elif out == False:
     print('files: N')
+    print(tc_check)
     print(storm_id[:4])
     print(starttime.strftime('%Y%m%d%H%M'))
     print(endtime.strftime('%Y%m%d%H%M'))

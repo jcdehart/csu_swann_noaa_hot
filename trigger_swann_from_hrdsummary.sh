@@ -11,6 +11,7 @@ outputString=$(python hot_run_from_hrdsummary.py --path $FILEPATH)
 mapfile -t output_lines <<< "$outputString"
 
 # set var names
+tc=${output_lines[-7]}
 filesexist=${output_lines[-6]}
 stormid=${output_lines[-5]}
 legstart=${output_lines[-4]}
@@ -20,7 +21,7 @@ lon=${output_lines[-1]} # not using right now, might add later ******
 
 # also add in center location? ******
 # add check for winter storms!! ******
-if [[ "$filesexist" == 'N' ]]; then 
+if [[ "$filesexist" == 'N' && "$tc" == 'TC' ]]; then 
     echo "python hot_main_run_samurai.py $stormid $legstart $legend > ./output_files/$stormid_$legstart.log"
     python hot_main_run_samurai.py $stormid $legstart $legend > ./output_files/$stormid_$legstart.log
 else

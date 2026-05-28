@@ -10,6 +10,7 @@ outputString=$(python hot_run_from_vdm.py --path $FILEPATH)
 mapfile -t output_lines <<< "$outputString"
 
 # set var names
+tc=${output_lines[-7]}
 filesexist=${output_lines[-6]}
 stormid=${output_lines[-5]}
 legstart=${output_lines[-4]}
@@ -19,7 +20,7 @@ lon=${output_lines[-1]}
 
 # add check for winter storms!! ******
 
-if [[ "$1" == 'N' ]]; then 
+if [[ "$1" == 'N' && "$tc" == 'TC' ]]; then 
     echo "python hot_main_run_hdobsonly.py $stormid $legstart $legend A --VDMLAT $lat --VDMLON $lon > ./output_files/$stormid_$legstart.log"
     python python hot_main_run_hdobsonly.py $stormid $legstart $legend A --VDMLAT $lat --VDMLON $lon > ./output_files/$stormid_$legstart.log
 else

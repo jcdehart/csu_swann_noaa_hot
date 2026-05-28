@@ -10,6 +10,7 @@ from hot_calc_centers import read_vdm
 import argparse
 import save_files
 import pandas as pd
+import numpy as np
 # grab info from tcvitals or flight+ file
 
 parser = argparse.ArgumentParser()
@@ -45,8 +46,20 @@ analysis_time = (leg_start + ((leg_end-leg_start)/2).round('min')).strftime('%Y%
 # check if files were created already
 out = save_files.check_files(outDir, imDir, storm_id[:4], analysis_time, 'HDOBS')
 
+# check if flight is actually a hurricane flight
+# no invests, PTCs, training, or winter storm flights
+flight_ignore = np.isin(storm_name, ['INVEST', 'TRAIN', 'CYCLONE']) # True if storm name matches these
+ptc = storm_name.startswith('PTC') # True if storm name starts with PTC 
+stormnum = storm_id[2:4].isalpha() # True if 3rd/4th characters in storm id are letters
+
+if flight_ignore | ptc | stormnum:
+    tc_check = 'other'
+else:
+    tc_check = 'TC'
+
 if out == True:
     print('files: Y')
+    print(tc_check)
     print(storm_id[:4])
     print(leg_start.strftime('%Y%m%d%H%M'))
     print(leg_end.strftime('%Y%m%d%H%M'))
@@ -54,6 +67,7 @@ if out == True:
     print(lon)
 elif out == False:
     print('files: N')
+    print(tc_check)
     print(storm_id[:4])
     print(leg_start.strftime('%Y%m%d%H%M'))
     print(leg_end.strftime('%Y%m%d%H%M'))
