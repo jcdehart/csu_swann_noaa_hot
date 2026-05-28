@@ -55,6 +55,9 @@ analysis_time = (starttime + ((endtime-starttime)/2).round('min')).strftime('%Y%
 os.system('mkdir -p ./samurai_parent/hrd_output')
 os.system('tar -xf '+file+' -C ./samurai_parent/hrd_output/')
 os.system('rm -f ./samurai_parent/hrd_output/*.gz ./samurai_parent/hrd_output/*files* ./samurai_parent/hrd_output/parameters* ./samurai_parent/hrd_output/run')
+
+# HRD flight code (20251028H1), storm code (AL132025)
+# mission code (2313A), storm name (MELISSA)
 flight_id, storm_id, mission_id, storm_name, lat, lon = read_hrdsumm('./samurai_parent/hrd_output/summary')
 
 # check if files were created already
