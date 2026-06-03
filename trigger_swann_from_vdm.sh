@@ -16,7 +16,7 @@ lon=${output_lines[-1]}
 
 # add check for winter storms!! ******
 
-if [[ "$1" == 'N' && "$tc" == 'TC' ]]; then 
+if [[ "$filesexist" == 'N' && "$tc" == 'TC' ]]; then 
     echo "python hot_main_run_hdobsonly.py $stormid $legstart $legend A --VDMLAT $lat --VDMLON $lon > ./output_files/$stormid_$legstart.log"
     python python hot_main_run_hdobsonly.py $stormid $legstart $legend A --VDMLAT $lat --VDMLON $lon > ./output_files/$stormid_$legstart.log
 else
