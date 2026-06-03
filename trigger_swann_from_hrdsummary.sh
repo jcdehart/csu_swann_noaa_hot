@@ -7,8 +7,8 @@ outputString=$(python hot_run_from_hrdsummary.py --path $1)
 mapfile -t output_lines <<< "$outputString"
 
 # set var names
-tc=${output_lines[-7]}
-filesexist=${output_lines[-6]}
+filesexist=${output_lines[-7]}
+tc=${output_lines[-6]}
 stormid=${output_lines[-5]}
 legstart=${output_lines[-4]}
 legend=${output_lines[-3]}
