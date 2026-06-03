@@ -21,4 +21,6 @@ if [[ "$filesexist" == 'N' && "$tc" == 'TC' ]]; then
     python python hot_main_run_hdobsonly.py $stormid $legstart $legend A --VDMLAT $lat --VDMLON $lon > ./output_files/$stormid_$legstart.log
 else
     echo "files already processed: $stormid $legstart $legend"
+    echo $filesexist
+    echo $tc
 fi
