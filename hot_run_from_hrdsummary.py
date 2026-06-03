@@ -76,7 +76,8 @@ else:
     tc_check = 'TC'
 
 if out == True:
-    print('files: Y')
+    print('file summary:')
+    print('Y')
     print(tc_check)
     print(storm_id[:4])
     print(starttime.strftime('%Y%m%d%H%M'))
@@ -84,7 +85,8 @@ if out == True:
     print(lat)
     print(lon)
 elif out == False:
-    print('files: N')
+    print('file summary:')
+    print('N')
     print(tc_check)
     print(storm_id[:4])
     print(starttime.strftime('%Y%m%d%H%M'))
