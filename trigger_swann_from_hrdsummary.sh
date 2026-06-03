@@ -1,9 +1,5 @@
 #!/bin/bash
 
-conda deactivate
-conda deactivate
-conda activate swann_py312
-
 # read and process hrd summary file
 outputString=$(python hot_run_from_hrdsummary.py --path $1)
 

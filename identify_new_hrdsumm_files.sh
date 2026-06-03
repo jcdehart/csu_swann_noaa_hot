@@ -1,5 +1,9 @@
 #!/bin/bash
 
+conda deactivate
+conda deactivate
+conda activate swann_py312
+
 # find all new HRD summary files within past 180 minutes (**modify time**)
 hrd_files=$(find ./ingest_dir/hrd_tar -type f -mmin -180) # could make a python script?
 
