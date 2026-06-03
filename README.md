@@ -80,5 +80,7 @@ VDMs (2025): [Atlantic](https://www.nhc.noaa.gov/archive/recon/2025/REPNT2/), [E
 ## Recommended environment setup
 
 `conda create --name swann_py312 python=3.12`
+
 `conda activate swann_py312`
+
 `pip install tensorflow pandas matplotlib netcdf4 scipy tf_keras`
