@@ -5,7 +5,7 @@ conda deactivate
 conda activate swann_py312
 
 # read and process hrd summary file
-outputString=$(python hot_run_from_hrdsummary.py --path $FILEPATH)
+outputString=$(python hot_run_from_hrdsummary.py --path $1)
 
 # move different lines to different indices
 mapfile -t output_lines <<< "$outputString"

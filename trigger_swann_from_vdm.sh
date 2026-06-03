@@ -4,7 +4,7 @@ conda deactivate
 conda deactivate
 conda activate swann_py312
 
-outputString=$(python hot_run_from_vdm.py --path $FILEPATH)
+outputString=$(python hot_run_from_vdm.py --path $1)
 
 # move different lines to different indices
 mapfile -t output_lines <<< "$outputString"
