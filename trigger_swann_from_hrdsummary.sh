@@ -18,8 +18,8 @@ lon=${output_lines[-1]} # not using right now, might add later ******
 # also add in center location? ******
 # add check for winter storms!! ******
 if [[ "$filesexist" == 'N' && "$tc" == 'TC' ]]; then 
-    echo "python hot_main_run_samurai.py $stormid $legstart $legend > ./output_files/$stormid_$legstart.log"
-    python hot_main_run_samurai.py $stormid $legstart $legend > ./output_files/$stormid_$legstart.log
+    echo "python hot_main_run_samurai.py $stormid $legstart $legend > ./output_files/sam_$stormid_$legstart.log"
+    python hot_main_run_samurai.py $stormid $legstart $legend > ./output_files/sam_$stormid_$legstart.log
 else
     echo "files already processed: $stormid $legstart $legend"
 fi
