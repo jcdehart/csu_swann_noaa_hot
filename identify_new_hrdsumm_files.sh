@@ -3,6 +3,8 @@
 # find all new HRD summary files within past 180 minutes (**modify time**)
 hrd_files=$(find ./ingest_dir/hrd_tar -type f -mmin -180) # could make a python script?
 
+mkdir -p ./output_files
+
 # only run code if variable is not empty
 if [[ -n "$hrd_files" ]]; then 
 

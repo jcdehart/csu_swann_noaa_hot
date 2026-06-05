@@ -3,6 +3,8 @@
 # find all new VDM center files within past 180 minutes (**modify time**)
 af_files=$(find ./ingest_dir/center_data/vdm -type f -mmin -180 -name "*NHC*") # could make a python script?
 
+mkdir -p ./output_files
+
 # only run code if variable is not empty
 if [[ -n "$af_files" ]]; then 
 
