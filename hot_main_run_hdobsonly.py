@@ -64,6 +64,7 @@ imDir = outDir+'images/'
 os.system('mkdir -p '+hdobs_ingest_dir)
 os.system('mkdir -p '+outDir)
 os.system('mkdir -p '+imDir)
+os.system('mkdir -p ./output_files')
 
 # set up mode specific paths/vars
 if mode == 'normal':
