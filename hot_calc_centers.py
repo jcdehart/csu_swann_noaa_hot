@@ -481,8 +481,8 @@ def center_adeck(args, samurai_time, cenpath):
     adeck_path = cenpath+'/adeck/'+centime.strftime('%Y')+'/'
     adeck_fn = 'a'+args.STORM.lower()+centime.strftime('%Y')+'.dat'
 
-    system('gunzip '+adeck_path+adeck_fn+'.gz')
-    print('unzipping  '+adeck_path+adeck_fn+'.gz')
+    system('gunzip -f '+adeck_path+adeck_fn+'.gz')
+    # print('unzipping  '+adeck_path+adeck_fn+'.gz')
 
     # grab all lines that contain storm
     file = open(adeck_path+adeck_fn)
