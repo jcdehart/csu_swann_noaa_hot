@@ -1,13 +1,26 @@
 #!/bin/bash
 
-conda deactivate
-conda deactivate
-conda activate swann_py312
+outputString=$(python hot_run_from_vdm.py --path $1)
 
-outputString=$(python hot_run_from_vdm.py --path $FILEPATH)
+# move different lines to different indices
+mapfile -t output_lines <<< "$outputString"
 
-set $outputString
+# set var names
+filesexist=${output_lines[-7]}
+tc=${output_lines[-6]}
+stormid=${output_lines[-5]}
+legstart=${output_lines[-4]}
+legend=${output_lines[-3]}
+lat=${output_lines[-2]} 
+lon=${output_lines[-1]} 
 
-echo "python hot_main_run_hdobsonly.py $1 $2 $3 A --VDMLAT $4 --VDMLON $5 > ./output_files/$1_$2.log"
+# add check for winter storms!! ******
 
-python hot_main_run_hdobsonly.py $1 $2 $3 A --VDMLAT $4 --VDMLON $5 > ./output_files/$1_$2.log
+if [[ "$filesexist" == 'N' && "$tc" == 'TC' ]]; then 
+    echo "python hot_main_run_hdobsonly.py $stormid $legstart $legend A --VDMLAT $lat --VDMLON $lon > ./output_files/hdobs_$stormid_$legstart.log"
+    python hot_main_run_hdobsonly.py $stormid $legstart $legend A --VDMLAT $lat --VDMLON $lon > ./output_files/hdobs_$stormid_$legstart.log
+else
+    echo "files already processed: $stormid $legstart $legend"
+    echo $filesexist
+    echo $tc
+fi

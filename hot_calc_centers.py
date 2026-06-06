@@ -52,7 +52,7 @@ def center_fplus(args, samurai_time):
     return center_time, fplus_cenlat, fplus_cenlon
 
 
-def read_vdm(file, mode):
+def read_vdm(file):
     
     import pandas as pd
     import re
@@ -102,22 +102,9 @@ def read_vdm(file, mode):
         lon = lon*-1
     
     ## *** can add additional code later!! ***
-    # other vars to consider: dropsonde sfc pressure/winds, inbound/outbound max winds/rmw/time, 
-    
-    # basically one set of outputs if using VDM to start workflow, 
-    # another if you want all the storm and flight info
-    # will likely modify in the future ! *******
-    if mode == 'trigger':
-        leg_start = vdm_center_time - pd.Timedelta(45,unit='m')
-        leg_end = vdm_center_time + pd.Timedelta(45,unit='m')
-        
-        print(storm_code[:4])
-        print(leg_start.strftime('%Y%m%d%H%M'))
-        print(leg_end.strftime('%Y%m%d%H%M'))
-        print(lat)
-        print(lon)
-    elif mode == 'full':
-        return (vdm_center_time, lat, lon, storm_code, storm_name, flight_code)
+    # other vars to consider: dropsonde sfc pressure/winds, inbound/outbound max winds/rmw/time
+
+    return (vdm_center_time, storm_code, flight_code, storm_name, lat, lon)
     
 
 def read_hrdsumm(file):
@@ -494,8 +481,8 @@ def center_adeck(args, samurai_time, cenpath):
     adeck_path = cenpath+'/adeck/'+centime.strftime('%Y')+'/'
     adeck_fn = 'a'+args.STORM.lower()+centime.strftime('%Y')+'.dat'
 
-    system('gunzip '+adeck_path+adeck_fn+'.gz')
-    print('unzipping  '+adeck_path+adeck_fn+'.gz')
+    system('gunzip -f '+adeck_path+adeck_fn+'.gz')
+    # print('unzipping  '+adeck_path+adeck_fn+'.gz')
 
     # grab all lines that contain storm
     file = open(adeck_path+adeck_fn)

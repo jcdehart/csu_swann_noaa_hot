@@ -11,6 +11,7 @@ import argparse
 import pandas as pd
 import os
 import save_files
+import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--path", help="HRD summary file path", type=str)
@@ -55,20 +56,38 @@ analysis_time = (starttime + ((endtime-starttime)/2).round('min')).strftime('%Y%
 os.system('mkdir -p ./samurai_parent/hrd_output')
 os.system('tar -xf '+file+' -C ./samurai_parent/hrd_output/')
 os.system('rm -f ./samurai_parent/hrd_output/*.gz ./samurai_parent/hrd_output/*files* ./samurai_parent/hrd_output/parameters* ./samurai_parent/hrd_output/run')
+
+# HRD flight code (20251028H1), storm code (AL132025)
+# mission code (2313A), storm name (MELISSA)
 flight_id, storm_id, mission_id, storm_name, lat, lon = read_hrdsumm('./samurai_parent/hrd_output/summary')
 
 # check if files were created already
 out = save_files.check_files(outDir, imDir, storm_id[:4], analysis_time, 'SAM')
 
+# check if flight is actually a hurricane flight
+# no invests, PTCs, training, or winter storm flights
+flight_ignore = np.isin(storm_name, ['INVEST', 'TRAIN', 'CYCLONE']) # True if storm name matches these
+ptc = storm_name.startswith('PTC') # True if storm name starts with PTC 
+stormnum = storm_id[2:4].isalpha() # True if 3rd/4th characters in storm id are letters
+
+if flight_ignore | ptc | stormnum:
+    tc_check = 'other'
+else:
+    tc_check = 'TC'
+
 if out == True:
-    print('files: Y')
+    print('file summary:')
+    print('Y')
+    print(tc_check)
     print(storm_id[:4])
     print(starttime.strftime('%Y%m%d%H%M'))
     print(endtime.strftime('%Y%m%d%H%M'))
     print(lat)
     print(lon)
 elif out == False:
-    print('files: N')
+    print('file summary:')
+    print('N')
+    print(tc_check)
     print(storm_id[:4])
     print(starttime.strftime('%Y%m%d%H%M'))
     print(endtime.strftime('%Y%m%d%H%M'))
