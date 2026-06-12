@@ -51,8 +51,8 @@ td1 = pd.Timedelta(hours=int(pieces[1][:2]), minutes=int(pieces[1][2:]))
 td2 = pd.Timedelta(hours=int(pieces[2][:2]), minutes=int(pieces[2][2:]))
 
 # create start and end time variables
-leg_start = pd.to_datetime(yymmdd, format='%Y%m%d') + td1
-leg_end = pd.to_datetime(yymmdd, format='%Y%m%d') + td2
+leg_start = pd.to_datetime(yymmdd, format='%Y%m%d', utc=True) + td1
+leg_end = pd.to_datetime(yymmdd, format='%Y%m%d', utc=True) + td2
 
 analysis_time = (leg_start + ((leg_end-leg_start)/2).round('min')).strftime('%Y%m%d%H%M')
 
