@@ -78,6 +78,20 @@ def shrink_df(df, start_time, end_time, storm_name, af, mission_code=None):
     return df_plane
 
 
+def check_dates(df, start_time, end_time):
+
+    # want data to start no later than 10 min after the start time
+    # and end no earlier than 5 min before the end time
+    # including both, likely end time is most important
+    # True = data are present close enough to time to proceed
+    data_start_comp = start_time + pd.Timedelta(10,unit='m')
+    data_end_comp = end_time - pd.Timedelta(5,unit='m')
+    data_start_diff = (df['datetime'].iloc[0] < data_start_comp) 
+    data_end_diff = (df['datetime'].iloc[-1] > data_end_comp)
+
+    return data_start_diff, data_end_diff
+
+
 def copy_files(df, outdir):
 
     for i in np.arange(len(df)):
