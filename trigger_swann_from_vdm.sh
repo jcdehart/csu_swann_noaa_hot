@@ -17,7 +17,7 @@ lon=${output_lines[-1]}
 
 # add check for winter storms!! ******
 
-if [[ "$filesexist" == 'N' && "$tc" == 'TC' && "$dataexist" == 'False' ]]; then 
+if [[ "$filesexist" == 'N' && "$tc" == 'TC' && "$dataexist" == 'True' ]]; then 
     echo "python hot_main_run_hdobsonly.py $stormid $legstart $legend A --VDMLAT $lat --VDMLON $lon > ./output_files/hdobs_$stormid_$legstart.log"
     python hot_main_run_hdobsonly.py $stormid $legstart $legend A --VDMLAT $lat --VDMLON $lon > ./output_files/hdobs_$stormid_$legstart.log
 elif [[ "$filesexist" == 'N' && "$tc" == 'TC' && "$dataexist" == 'False' ]]; then 
