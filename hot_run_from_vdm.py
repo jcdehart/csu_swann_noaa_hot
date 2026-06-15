@@ -7,6 +7,7 @@ Created on Fri Feb 20 2026
 """
 
 from hot_calc_centers import read_vdm
+import hot_grab_files
 import argparse
 import save_files
 import pandas as pd
@@ -18,14 +19,17 @@ parser.add_argument("--path", help="VDM file path", type=str)
 parser.add_argument("--MODE", default="normal", help="run mode (test or normal)", type=str)
 args = parser.parse_args()
 
+inDir = './'
+
 mode = args.MODE
 
 if mode == 'test':
     ext = 'testing/output/'
+    data_dir = inDir+'testing/data/'
 else:
     ext = ''
+    data_dir = inDir+'ingest_dir/'
 
-inDir = './'
 outDir = inDir+ext
 imDir = outDir+'images/'
 
@@ -43,6 +47,11 @@ leg_end = vdm_center_time + pd.Timedelta(45,unit='m')
 
 analysis_time = (leg_start + ((leg_end-leg_start)/2).round('min')).strftime('%Y%m%d%H%M')
 
+# check if enough data files have arrived
+hdobs_init = hot_grab_files.create_dataframe(data_dir+'hdobs',leg_start,leg_end)
+hdobs_sm = hot_grab_files.shrink_df(hdobs_init, leg_start, leg_end, storm_name, True)
+data_start_diff, data_end_diff = hot_grab_files.check_dates(hdobs_sm, leg_start, leg_end)
+
 # check if files were created already
 out = save_files.check_files(outDir, imDir, storm_id[:4], analysis_time, 'HDOBS')
 
@@ -59,6 +68,7 @@ else:
 
 if out == True:
     print('file summary:')
+    print(data_end_diff)
     print('Y')
     print(tc_check)
     print(storm_id[:4])
@@ -68,6 +78,7 @@ if out == True:
     print(lon)
 elif out == False:
     print('file summary:')
+    print(data_end_diff)
     print('N')
     print(tc_check)
     print(storm_id[:4])

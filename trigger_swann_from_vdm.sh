@@ -6,6 +6,7 @@ outputString=$(python hot_run_from_vdm.py --path $1)
 mapfile -t output_lines <<< "$outputString"
 
 # set var names
+dataexist=${output_lines[-8]}
 filesexist=${output_lines[-7]}
 tc=${output_lines[-6]}
 stormid=${output_lines[-5]}
@@ -16,9 +17,11 @@ lon=${output_lines[-1]}
 
 # add check for winter storms!! ******
 
-if [[ "$filesexist" == 'N' && "$tc" == 'TC' ]]; then 
+if [[ "$filesexist" == 'N' && "$tc" == 'TC' && "$dataexist" == 'True' ]]; then 
     echo "python hot_main_run_hdobsonly.py $stormid $legstart $legend A --VDMLAT $lat --VDMLON $lon > ./output_files/hdobs_$stormid_$legstart.log"
     python hot_main_run_hdobsonly.py $stormid $legstart $legend A --VDMLAT $lat --VDMLON $lon > ./output_files/hdobs_$stormid_$legstart.log
+elif [[ "$filesexist" == 'N' && "$tc" == 'TC' && "$dataexist" == 'False' ]]; then 
+    echo "files don't exist, but waiting for more data."
 else
     echo "files already processed: $stormid $legstart $legend"
     echo $filesexist

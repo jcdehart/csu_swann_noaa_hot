@@ -7,6 +7,7 @@ Created on Fri Apr 20 2026
 """
 
 from hot_calc_centers import read_hrdsumm
+import hot_grab_files
 import argparse
 import pandas as pd
 import os
@@ -18,14 +19,17 @@ parser.add_argument("--path", help="HRD summary file path", type=str)
 parser.add_argument("--MODE", default="normal", help="run mode (test or normal)", type=str)
 args = parser.parse_args()
 
+inDir = './'
+
 mode = args.MODE
 
 if mode == 'test':
     ext = 'testing/output/'
+    data_dir = inDir+'testing/data/'
 else:
     ext = ''
+    data_dir = inDir+'ingest_dir/'
 
-inDir = './'
 outDir = inDir+ext
 imDir = outDir+'images/'
 
@@ -47,10 +51,10 @@ td1 = pd.Timedelta(hours=int(pieces[1][:2]), minutes=int(pieces[1][2:]))
 td2 = pd.Timedelta(hours=int(pieces[2][:2]), minutes=int(pieces[2][2:]))
 
 # create start and end time variables
-starttime = pd.to_datetime(yymmdd, format='%Y%m%d') + td1
-endtime = pd.to_datetime(yymmdd, format='%Y%m%d') + td2
+leg_start = pd.to_datetime(yymmdd, format='%Y%m%d', utc=True) + td1
+leg_end = pd.to_datetime(yymmdd, format='%Y%m%d', utc=True) + td2
 
-analysis_time = (starttime + ((endtime-starttime)/2).round('min')).strftime('%Y%m%d%H%M')
+analysis_time = (leg_start + ((leg_end-leg_start)/2).round('min')).strftime('%Y%m%d%H%M')
 
 # create directories and untar hrd files
 os.system('mkdir -p ./samurai_parent/hrd_output')
@@ -60,6 +64,11 @@ os.system('rm -f ./samurai_parent/hrd_output/*.gz ./samurai_parent/hrd_output/*f
 # HRD flight code (20251028H1), storm code (AL132025)
 # mission code (2313A), storm name (MELISSA)
 flight_id, storm_id, mission_id, storm_name, lat, lon = read_hrdsumm('./samurai_parent/hrd_output/summary')
+
+# check if enough data files have arrived
+hrd_init = hot_grab_files.create_dataframe(data_dir+'hrd_radials',leg_start,leg_end)
+hrd_sm = hot_grab_files.shrink_df(hrd_init, leg_start, leg_end, storm_name, False)
+data_start_diff, data_end_diff = hot_grab_files.check_dates(hrd_sm, leg_start, leg_end)
 
 # check if files were created already
 out = save_files.check_files(outDir, imDir, storm_id[:4], analysis_time, 'SAM')
@@ -77,19 +86,21 @@ else:
 
 if out == True:
     print('file summary:')
+    print(data_end_diff)
     print('Y')
     print(tc_check)
     print(storm_id[:4])
-    print(starttime.strftime('%Y%m%d%H%M'))
-    print(endtime.strftime('%Y%m%d%H%M'))
+    print(leg_start.strftime('%Y%m%d%H%M'))
+    print(leg_end.strftime('%Y%m%d%H%M'))
     print(lat)
     print(lon)
 elif out == False:
     print('file summary:')
+    print(data_end_diff)
     print('N')
     print(tc_check)
     print(storm_id[:4])
-    print(starttime.strftime('%Y%m%d%H%M'))
-    print(endtime.strftime('%Y%m%d%H%M'))
+    print(leg_start.strftime('%Y%m%d%H%M'))
+    print(leg_end.strftime('%Y%m%d%H%M'))
     print(lat)
     print(lon)
