@@ -10,7 +10,7 @@
 #         contain missing values (NaNs)
 # *****************************************************************************
 
-using JuliaMet, Interpolations, Optim, NetCDF, DelimitedFiles, Statistics
+using Interpolations, Optim, NetCDF, DelimitedFiles, Statistics
 include("./simplex_aux.jl")
 
 #==============================================================================
