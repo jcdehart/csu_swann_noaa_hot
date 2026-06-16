@@ -106,3 +106,8 @@ To simplify package installation, this repo comes with Project.toml and Manifest
 `julia --project=.`
 
 That will bring up the Julia interactive REPL, which contains a green-colored 'julia>' prompt. To enter the package manager, type ']' (without quotation marks). That will change the prompt to a blue-colored 'pkg>'. Run `instantiate` to download and compile the packages listed in the provided .toml files. Type `st` to see the installed packages. To exit the package manager, hit the 'delete' or 'backspace' key. To exit Julia, just enter `exit()` like you would in Python.
+
+
+## Installing SAMURAI
+
+To install SAMURAI, follow the LROSE [installation instructions](https://github.com/NCAR/lrose-core/releases) for your specific operating system. If using Homebrew on a Mac, you'll need to install the lrose-core and samurai .rb files separately.
