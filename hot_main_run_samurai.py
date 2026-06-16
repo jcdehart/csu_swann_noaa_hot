@@ -165,6 +165,7 @@ os.system(sam_bin+' -params ./samurai_parent/samurai_params_cart')
 os.system('mv ./samurai_parent/samurai_params_cart '+sam_dir)
 os.system('mv ./samurai_parent/samurai_input/*.cen '+sam_dir)
 os.system('mv ./samurai_parent/samurai_input/*.in '+sam_dir)
+os.system('mv ./timing.0 '+sam_dir)
 
 
 #%% grab center from SAMURAI analysis
@@ -187,6 +188,10 @@ sam_lon, sam_lat, xc, yc, wccen, rmw_avg = hot_calc_centers.process_simplex_cen(
 
 # convert hdobs to xy
 x_plane,y_plane = xy(hdobs.lat.values,hdobs.lon.values,sam_lat,sam_lon)
+
+# move files to analysis_dir
+os.system('mv ./objective_simplex.jl '+sam_dir)
+os.system('mv ./samurai_center.nc '+sam_dir)
 
 
 #%% #### main code: step 3 - run SWANN ####
