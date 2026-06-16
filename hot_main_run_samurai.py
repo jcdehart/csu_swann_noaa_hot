@@ -50,7 +50,7 @@ ml_file = 'HS24_SCL_2DNN_model_v2.h5'
 json_fn = 'HS24_SCL_2DNN_model_v2.json'
 sam_dir_base = inDir+'samurai_parent/'
 sam_ingest_dir = inDir+'samurai_parent/samurai_input/'
-sam_bin = '/bell-scratch/mmbell/hot/samurai-hot/release/bin/samurai'
+sam_bin = 'samurai'
 outDir = inDir+ext
 imDir = outDir+'images/'
 
