@@ -2,6 +2,7 @@
 
 This repository holds the scripts that run the CSU Surface Winds from Aircraft with a Neural Network (SWANN) model. The model is described in [DesRosiers et al. (2025)](https://doi.org/10.1029/2025JH000584). 
 
+
 ## Running SWANN directly from Python scripts
 
 For help running the python scripts directly, please refer to the instructions below.
@@ -30,9 +31,17 @@ To test the code, use the following commands:
 
 Output files will be saved to the ./testing/output directory. Expected output files are provided in the ./testing/output_expected directory.
 
+
+## Running SWANN from shell scripts
+
+The identify_new_files.sh and identify_new_hrdsumm_files.sh each search for new center files (i.e., VDM files for Air Force and HRD Summary files for NOAA flights, respectively) and then run SWANN if output files (an image, a NetCDF file, and a text file) have not yet been created. SWANN is only run for center files that were created within the past 2 hours. 
+
+To make sure they run correctly, define a variable named SWANNHOME with the path to this SWANN directory in a .env file. For example, `export SWANNHOME="/path/to/csu_swann_noaa_hot"`.
+
+
 ## Setup
 
-The input data should be organized in the following manner:
+The input data needs to be organized in the following manner:
 
 ```bash
 .
@@ -63,7 +72,8 @@ The input data should be organized in the following manner:
 │       └── 2026
 ```
 
-## Needed datasets
+
+## Required datasets
 
 [NHC A-decks](https://ftp.nhc.noaa.gov/atcf/aid_public/)
 
@@ -77,6 +87,7 @@ VDMs (2025): [Atlantic](https://www.nhc.noaa.gov/archive/recon/2025/REPNT2/), [E
 
 [tcvitals (atmos)](https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/)
 
+
 ## Recommended environment setup
 
 `conda create --name swann_py312 python=3.12`
@@ -84,3 +95,14 @@ VDMs (2025): [Atlantic](https://www.nhc.noaa.gov/archive/recon/2025/REPNT2/), [E
 `conda activate swann_py312`
 
 `pip install tensorflow pandas matplotlib netcdf4 scipy tf_keras`
+
+
+## Installing and setting up Julia
+
+Download and install Julia on your machine using the instructions found [here](https://julialang.org/downloads/).
+
+To simplify package installation, this repo comes with Project.toml and Manifest.toml files to recreate the SWANN dependencies. To setup Julia the first time, 1) move to the main SWANN directory and 2) start julia with the project flag.
+
+`julia --project=.`
+
+That will bring up the Julia interactive REPL, which contains a green-colored 'julia>' prompt. To enter the package manager, type ']' (without quotation marks). That will change the prompt to a blue-colored 'pkg>'. Run `instantiate` to download and compile the packages listed in the provided .toml files. Type `st` to see the installed packages. To exit the package manager, hit the 'delete' or 'backspace' key. To exit Julia, just enter `exit()` like you would in Python.
