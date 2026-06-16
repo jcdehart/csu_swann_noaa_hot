@@ -110,4 +110,4 @@ That will bring up the Julia interactive REPL, which contains a green-colored 'j
 
 ## Installing SAMURAI
 
-To install SAMURAI, follow the LROSE [installation instructions](https://github.com/NCAR/lrose-core/releases) for your specific operating system. If using Homebrew on a Mac, you'll need to install the lrose-core and samurai .rb files separately.
+To install SAMURAI, follow the LROSE [installation instructions](https://github.com/NCAR/lrose-core/releases) for your specific operating system. If using Homebrew on a Mac, you'll need to install the lrose-core and samurai .rb files separately. Make sure SAMURAI has been added to your path (e.g., `which samurai` returns the expected install)
