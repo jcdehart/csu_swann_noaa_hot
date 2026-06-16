@@ -2,4 +2,4 @@
 
 unset LD_LIBRARY_PATH
 
-/home/jcdehart/.juliaup/bin/julia objective_simplex.jl
+julia --project=. objective_simplex.jl
