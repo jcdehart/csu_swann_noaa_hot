@@ -63,6 +63,8 @@ stormnum = storm_id[2:4].isalpha() # True if 3rd/4th characters in storm id are 
 
 if flight_ignore | ptc | stormnum:
     tc_check = 'other'
+    print(storm_name)
+    print('PTC: '+str(ptc))
 else:
     tc_check = 'TC'
 

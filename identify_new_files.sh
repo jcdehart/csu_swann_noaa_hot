@@ -1,7 +1,11 @@
 #!/bin/bash
 
+source .env
+export SWANNHOME=${SWANNHOME:-nhcg}
+cd $SWANNHOME
+
 # find all new VDM center files within past 180 minutes (**modify time**)
-af_files=$(find ./ingest_dir/center_data/vdm -type f -mmin -10 -name "*NHC*") 
+af_files=$(find ./ingest_dir/center_data/vdm -type f -mmin -120 -name "*NHC*") 
 
 mkdir -p ./output_files
 
