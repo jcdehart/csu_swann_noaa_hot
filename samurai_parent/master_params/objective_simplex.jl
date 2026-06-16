@@ -10,7 +10,7 @@
 #         contain missing values (NaNs)
 # *****************************************************************************
 
-using Interpolations, Optim, NetCDF, DelimitedFiles, Statistics
+using Interpolations, Optim, NetCDF, DelimitedFiles, Statistics, DataStructures
 include("./simplex_aux.jl")
 
 #==============================================================================
