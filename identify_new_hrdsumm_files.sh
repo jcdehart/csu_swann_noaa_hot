@@ -1,7 +1,11 @@
 #!/bin/bash
 
+source .env
+export SWANNHOME=${SWANNHOME:-nhcg}
+cd $SWANNHOME
+
 # find all new HRD summary files within past 180 minutes (**modify time**)
-hrd_files=$(find ./ingest_dir/hrd_tar -type f -mmin -30) # could make a python script?
+hrd_files=$(find ./ingest_dir/hrd_tar -type f -mmin -120) # could make a python script?
 
 mkdir -p ./output_files
 
