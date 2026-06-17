@@ -94,6 +94,8 @@ def check_dates(df, start_time, end_time):
 
 def copy_files(df, outdir):
 
+    i = None
+
     for i in np.arange(len(df)):
         os.system('cp '+df.path.iloc[i]+' '+outdir)
 
