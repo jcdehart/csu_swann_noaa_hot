@@ -311,7 +311,7 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
     if len(list(set(missions))) == 1:
         mission = list(set(missions))
     else:
-        mission = max(set(missions), key=missions.count)
+        mission = max(set(missions), key=missions.count, default=None)
 
     # pare down dataframes
     dfs_good = [dfs[i] for i in good_final]
