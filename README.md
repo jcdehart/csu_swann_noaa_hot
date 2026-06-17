@@ -12,22 +12,22 @@ For help running the python scripts directly, please refer to the instructions b
 For NOAA aircraft with TDR data, the basic command structure is as follows:
 python hot_main_run_samurai.py stormID (e.g., AL05) leg_start (YYYYMMDDHHMM) leg_end (YYYYMMDDHHMM)
 
-example: `python hot_main_run_samurai.py AL05 202408141201 202408141325`
+example: `python hot_main_run_samurai.py AL05 ERNESTO 202408141201 202408141325`
 
 ### Air Force Aircraft
 
 For HDOBS-only flights (Air Force or NOAA aircraft), the basic command structure is as follows:
 python hot_main_run_hdobsonly.py stormID (e.g., AL05) leg_start (YYYYMMDDHHMM) leg_end (YYYYMMDDHHMM) (new) plane type (air force: A, NOAA: N)
 
-example: `python hot_main_run_hdobsonly.py AL10 202308281059 202308281149 A`
+example: `python hot_main_run_hdobsonly.py AL10 IDALIA 202308281059 202308281149 A`
 
 ### Test Mode
 
 To test the code, use the following commands:
 
-`python hot_main_run_samurai.py ALXX xxxxxxxxxxxx yyyyyyyyyyyy --MODE test`
+`python hot_main_run_samurai.py x x x x --MODE test`
 
-`python hot_main_run_hdobsonly.py ALXX xxxxxxxxxxxx yyyyyyyyyyyy A --MODE test`
+`python hot_main_run_hdobsonly.py x x x x A --MODE test`
 
 Output files will be saved to the ./testing/output directory. Expected output files are provided in the ./testing/output_expected directory.
 

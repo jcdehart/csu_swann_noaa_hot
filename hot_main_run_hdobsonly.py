@@ -25,7 +25,8 @@ import save_files
 
 # grab info from tcvitals or flight+ file
 parser = argparse.ArgumentParser()
-parser.add_argument("STORM", help="storm name (all caps)", type=str)
+parser.add_argument("STORM", help="storm id (all caps)", type=str)
+parser.add_argument("STORMNAME", help="storm name (all caps)", type=str)
 parser.add_argument("STARTTIME", help="samurai start datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("ENDTIME", help="samurai end datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("PLANE", help="plane: NOAA (N) or AF (A)", type=str)
@@ -78,9 +79,11 @@ elif mode == 'test':
     leg_end = pd.to_datetime('202510281347',format='%Y%m%d%H%M',utc=True)
     args.STARTTIME = leg_start.strftime('%Y%m%d%H%M')
     args.STORM = 'AL13'
+    args.STORMNAME = 'MELISSA'
 
 samurai_time = leg_start + ((leg_end-leg_start)/2).round('min')
 analysis_time = samurai_time.strftime('%Y%m%d%H%M')
+storm_name = args.STORMNAME
 print('\n')
 print('leg start time: '+leg_start.strftime('%Y%m%d%H%M'))
 print('leg end time: '+leg_end.strftime('%Y%m%d%H%M'))
@@ -96,6 +99,7 @@ print('########')
 print('center stats from tcvitals and adeck:')
 print([storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motion, u_motion_1, v_motion_1, storm_dir_rot])
 print([storm_lat_2, storm_lon_2, storm_intens_2, np.nan, storm_dir_2, storm_motion_2, u_motion_2, v_motion_2, storm_dir_rot_2])
+print([storm_name, storm_name_2])
 
 # first remove any existing files
 os.system('rm -rf '+hdobs_ingest_dir+'/*.list')
@@ -107,7 +111,7 @@ print('########')
 print('moving data over and reading HDOBS files')
 
 hdobs_init = hot_grab_files.create_dataframe(data_dir+'hdobs',leg_start,leg_end)
-hdobs_sm = hot_grab_files.shrink_df(hdobs_init, leg_start, leg_end, storm_name_2, af)
+hdobs_sm = hot_grab_files.shrink_df(hdobs_init, leg_start, leg_end, storm_name, af)
 hot_grab_files.copy_files(hdobs_sm,hdobs_ingest_dir)
 
 print(hdobs_sm.mission.unique())
@@ -119,9 +123,9 @@ os.system('for i in '+hdobs_ingest_dir+'/*.txt; do mv "$i" "${i%.txt}.hdob"; don
 
 # read in hdobs data
 if af == True:
-    hdobs, mission = hot_calc_centers.read_hdobs('KNHC', storm_name_2,'HDOBS', leg_start, leg_end)
+    hdobs, mission = hot_calc_centers.read_hdobs('KNHC', storm_name,'HDOBS', leg_start, leg_end)
 elif af == False:
-    hdobs, mission = hot_calc_centers.read_hdobs('KWBC', storm_name_2,'HDOBS', leg_start, leg_end)
+    hdobs, mission = hot_calc_centers.read_hdobs('KWBC', storm_name,'HDOBS', leg_start, leg_end)
 
 print('avg, min, max altitude (km): '+str(np.round(hdobs.hgt.mean())/1000.)+', '+str(np.round(hdobs.hgt.min())/1000.)+', '+str(np.round(hdobs.hgt.max())/1000.))
 
@@ -194,7 +198,7 @@ sfc_wind_pred, swann_rmw, sfc_wind_pred_ms = hot_prep_data.postprocess_swann_af(
 hdobs_fl_vmax, swann_hdobs_vmax, simp_frank = hot_prep_data.vmax_calcs_af(alt_plane, hdobs, sfc_wind_pred)
 
 # create text strings for image
-figtitle, textstr = hot_prep_data.create_fig_str(storm_name_2, mission, leg_start, leg_end, storm_lat, 
+figtitle, textstr = hot_prep_data.create_fig_str(storm_name, mission, leg_start, leg_end, storm_lat, 
                                                  storm_lon, swann_rmw, simp_frank, 'A')
 
 #%% #### main code: step 5 - save all files ####
