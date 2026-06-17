@@ -17,12 +17,11 @@ lat=${output_lines[-2]} # not using right now, might add later ******
 lon=${output_lines[-1]} # not using right now, might add later ******
 
 # also add in center location? ******
-# add check for winter storms!! ******
 if [[ "$filesexist" == 'N' && "$tc" == 'TC' && "$dataexist" == 'True' ]]; then 
     echo "python hot_main_run_samurai.py $stormid $legstart $legend > ./output_files/sam_$stormid_$legstart.log"
     python hot_main_run_samurai.py $stormid $legstart $legend > ./output_files/sam_$stormid_$legstart.log
 elif [[ "$filesexist" == 'N' && "$tc" == 'TC' && "$dataexist" == 'False' ]]; then 
-    echo "files don't exist, but waiting for more data."
+    echo "Not enough input files exist, waiting for more data: $stormid $legstart $legend"
 else
-    echo "files already processed: $stormid $legstart $legend"
+    echo "Not processing files: $stormid $legstart $legend, files exist: $filesexist, storm type: $tc $stormid"
 fi
