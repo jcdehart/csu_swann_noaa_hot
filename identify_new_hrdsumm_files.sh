@@ -25,6 +25,6 @@ if [[ -n "$hrd_files" ]]; then
 
 else
 
-    echo "No new files found."
+    echo "No new HRD Summary files found."
 
 fi

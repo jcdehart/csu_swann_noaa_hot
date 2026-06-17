@@ -25,6 +25,6 @@ if [[ -n "$af_files" ]]; then
 
 else
 
-    echo "No new files found."
+    echo "No new VDM files found."
 
 fi
