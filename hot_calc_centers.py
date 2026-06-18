@@ -404,6 +404,7 @@ def center_tcvitals(args, cenpath):
     # check if real time files exist, otherwise go to archive
     if os.path.isfile(tcvitals_path+tcvitals_fn):
         file = open(tcvitals_path+tcvitals_fn)
+        file_bkp = open(tcvitals_path+tcvitals_fn)
         centime = centime_firstguess
         print('tcvitals time: '+centime_firstguess.strftime('%Y%m%d%H%M'))
     else:
@@ -425,6 +426,7 @@ def center_tcvitals(args, cenpath):
             tcvitals_path_archive = cenpath+'/tcvitals/archive/'
             tcvitals_fn_archive = 'syndat_tcvitals.'+centime_firstguess.strftime('%Y')
             file = open(tcvitals_path_archive+tcvitals_fn_archive)
+            file_bkp = open(tcvitals_path+tcvitals_fn)
 
             # set 4 hours as required threshold for using first guess
             if (pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True) - centime_firstguess) / pd.Timedelta(1, 'h') > 4:
@@ -439,16 +441,14 @@ def center_tcvitals(args, cenpath):
         if all(word in line for word in searchwds):
             tc_vital.append(line)
 
-    print(len(tc_vital))
-    print(tc_vital)
-
     if len(tc_vital) == 0:
         print('tcvital file did not include expected time. checking to see if file mistakenly has data from 6 hours prior.')
 
         searchwds = [storm_id, (centime - pd.Timedelta(hours=6)).strftime('%Y%m%d'), (centime - pd.Timedelta(hours=6)).strftime('%H%M')]
-        for line in file: 
-            if all(word in line for word in searchwds):
-                tc_vital.append(line)
+        print(searchwds)
+        for line2 in file_bkp: 
+            if all(word in line2 for word in searchwds):
+                tc_vital.append(line2)
 
 
     center_time = pd.to_datetime(searchwds[1]+searchwds[2], format='%Y%m%d%H%M', utc=True)
