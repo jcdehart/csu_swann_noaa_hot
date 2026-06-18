@@ -421,7 +421,7 @@ def center_tcvitals(args, cenpath):
 
         else:
             # assuming that data is in the archive
-            print('neither time exists - moving to 2023 archive')
+            print('neither time exists - moving to archive')
             tcvitals_path_archive = cenpath+'/tcvitals/archive/'
             tcvitals_fn_archive = 'syndat_tcvitals.'+centime_firstguess.strftime('%Y')
             file = open(tcvitals_path_archive+tcvitals_fn_archive)
@@ -438,6 +438,14 @@ def center_tcvitals(args, cenpath):
     for line in file: 
         if all(word in line for word in searchwds):
             tc_vital.append(line)
+
+    if len(tc_vital == 0):
+        print('tcvital file did not include expected time. checking to see if file mistakenly has data from 6 hours prior.')
+
+        searchwds = [storm_id, (centime - pd.Timedelta(hours=6)).strftime('%Y%m%d'), (centime - pd.Timedelta(hours=6)).strftime('%H%M')]
+        for line in file: 
+            if all(word in line for word in searchwds):
+                tc_vital.append(line)
 
 
     center_time = pd.to_datetime(searchwds[1]+searchwds[2], format='%Y%m%d%H%M', utc=True)
