@@ -94,10 +94,15 @@ def check_dates(df, start_time, end_time):
 
 def copy_files(df, outdir):
 
+    i = None
+
     for i in np.arange(len(df)):
         os.system('cp '+df.path.iloc[i]+' '+outdir)
 
-    print('copied over '+str(i+1)+' files to samurai_input')
+    if i is not None:
+        print('copied over '+str(i+1)+' files to samurai_input')
+    else:
+        print('no files copied, dataframe empty')
 
     return
 

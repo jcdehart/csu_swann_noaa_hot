@@ -311,7 +311,7 @@ def read_hdobs(plane, storm, analysis_type, start_time, end_time):
     if len(list(set(missions))) == 1:
         mission = list(set(missions))
     else:
-        mission = max(set(missions), key=missions.count)
+        mission = max(set(missions), key=missions.count, default=None)
 
     # pare down dataframes
     dfs_good = [dfs[i] for i in good_final]
@@ -404,6 +404,7 @@ def center_tcvitals(args, cenpath):
     # check if real time files exist, otherwise go to archive
     if os.path.isfile(tcvitals_path+tcvitals_fn):
         file = open(tcvitals_path+tcvitals_fn)
+        file_bkp = open(tcvitals_path+tcvitals_fn)
         centime = centime_firstguess
         print('tcvitals time: '+centime_firstguess.strftime('%Y%m%d%H%M'))
     else:
@@ -421,10 +422,11 @@ def center_tcvitals(args, cenpath):
 
         else:
             # assuming that data is in the archive
-            print('neither time exists - moving to 2023 archive')
+            print('neither time exists - moving to archive')
             tcvitals_path_archive = cenpath+'/tcvitals/archive/'
             tcvitals_fn_archive = 'syndat_tcvitals.'+centime_firstguess.strftime('%Y')
             file = open(tcvitals_path_archive+tcvitals_fn_archive)
+            file_bkp = open(tcvitals_path+tcvitals_fn)
 
             # set 4 hours as required threshold for using first guess
             if (pd.to_datetime(args.STARTTIME,format='%Y%m%d%H%M',utc=True) - centime_firstguess) / pd.Timedelta(1, 'h') > 4:
@@ -438,6 +440,15 @@ def center_tcvitals(args, cenpath):
     for line in file: 
         if all(word in line for word in searchwds):
             tc_vital.append(line)
+
+    if len(tc_vital) == 0:
+        print('tcvital file did not include expected time. checking to see if file mistakenly has data from 6 hours prior.')
+
+        searchwds = [storm_id, (centime - pd.Timedelta(hours=6)).strftime('%Y%m%d'), (centime - pd.Timedelta(hours=6)).strftime('%H%M')]
+        print(searchwds)
+        for line2 in file_bkp: 
+            if all(word in line2 for word in searchwds):
+                tc_vital.append(line2)
 
 
     center_time = pd.to_datetime(searchwds[1]+searchwds[2], format='%Y%m%d%H%M', utc=True)
@@ -653,7 +664,7 @@ def choose_fl_cen(args, prominent, hdobs, wc_cen, adeck_cen):
     return storm_lat, storm_lon, wc_good, vdm_good
 
 
-def process_simplex_cen(fn, alt_plane, cart_file, wc_cen, wc_good):
+def process_simplex_cen(fn, alt_plane, cart_file, wc_cen, wc_good, args, intens):
 
     from netCDF4 import Dataset
     import numpy as np
@@ -689,13 +700,21 @@ def process_simplex_cen(fn, alt_plane, cart_file, wc_cen, wc_good):
     sam_lat_tmp = np.interp(yc_avg, ncfile_cen['y'][:].data, ncfile_cen['latitude'][:].data)
 
     # check for distance from W-C center *** fix later??? *******
-    if ((np.abs(sam_lon_tmp - lon_wc) > 0.4) | (np.abs(sam_lat_tmp - lat_wc) > 0.4)) & wc_good:
+    if ((np.abs(sam_lon_tmp - lon_wc) > 0.4) | (np.abs(sam_lat_tmp - lat_wc) > 0.4)) & wc_good & (intens >= 30):
         print('objective center too far from W-C, W-C good, defaulting to W-C center')
         sam_lon = lon_wc
         sam_lat = lat_wc
         xc = np.interp(lon_wc, ncfile_cen['longitude'][:].data, ncfile_cen['x'][:].data)
         yc = np.interp(lat_wc, ncfile_cen['latitude'][:].data, ncfile_cen['y'][:].data)
         wccen = True # set this to calc rmw later
+    elif (args.VDMLON != 0.0) & (args.VDMLAT != 0.0) & ~wc_good & (intens < 30):
+        sam_lon = args.VDMLON
+        sam_lat = args.VDMLAT
+        xc = np.interp(args.VDMLON, ncfile_cen['longitude'][:].data, ncfile_cen['x'][:].data)
+        yc = np.interp(args.VDMLAT, ncfile_cen['latitude'][:].data, ncfile_cen['y'][:].data)
+        print('Using HRD summary center, A deck intensity < 30 m/s')
+        wccen = False # maybe add similar param for VDM? would assume vdm is good though....
+        vdm_good = True # might include a check for these cases...
     else:
         print('objective center seems reasonable or W-C bad')
         sam_lon = sam_lon_tmp
@@ -706,4 +725,4 @@ def process_simplex_cen(fn, alt_plane, cart_file, wc_cen, wc_good):
 
     print('samurai center lat: '+str(sam_lat)+', center lon: '+str(sam_lon))
 
-    return sam_lon, sam_lat, xc, yc, wccen, rmw_avg
+    return sam_lon, sam_lat, xc, yc, wccen, rmw_avg, vdm_good

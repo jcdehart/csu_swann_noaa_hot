@@ -27,7 +27,8 @@ import save_files
 
 # grab info from tcvitals or flight+ file
 parser = argparse.ArgumentParser()
-parser.add_argument("STORM", help="storm name (all caps)", type=str)
+parser.add_argument("STORM", help="storm id (all caps)", type=str)
+parser.add_argument("STORMNAME", help="storm name (all caps)", type=str)
 parser.add_argument("STARTTIME", help="samurai start datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("ENDTIME", help="samurai end datetime (YYYYMMDDHHMM)", type=str)
 parser.add_argument("--MODE", default="normal", help="run mode (test or normal)", type=str)
@@ -72,9 +73,11 @@ elif mode == 'test':
     leg_end = pd.to_datetime('202510281403',format='%Y%m%d%H%M',utc=True)
     args.STARTTIME = leg_start.strftime('%Y%m%d%H%M')
     args.STORM = 'AL13'
+    args.STORMNAME = 'MELISSA'
 
 samurai_time = leg_start + ((leg_end-leg_start)/2).round('min')
 analysis_time = samurai_time.strftime('%Y%m%d%H%M')
+storm_name = args.STORMNAME
 print('\n')
 print('leg start time: '+leg_start.strftime('%Y%m%d%H%M'))
 print('leg end time: '+leg_end.strftime('%Y%m%d%H%M'))
@@ -90,6 +93,7 @@ print('########')
 print('center stats from tcvitals and adeck:')
 print([storm_lat_1, storm_lon_1, storm_intens, storm_rmw, storm_dir, storm_motion, u_motion_1, v_motion_1, storm_dir_rot])
 print([storm_lat_2, storm_lon_2, storm_intens_2, np.nan, storm_dir_2, storm_motion_2, u_motion_2, v_motion_2, storm_dir_rot_2])
+print([storm_name, storm_name_2])
 
 # move all necessary files to ./samurai_input
 # first remove any existing files
@@ -104,8 +108,8 @@ print('moving data over and reading HDOBS files')
 # move radials and HDOBS
 hrd_init = hot_grab_files.create_dataframe(data_dir+'hrd_radials',leg_start,leg_end)
 hdobs_init = hot_grab_files.create_dataframe(data_dir+'hdobs',leg_start,leg_end)
-hrd_sm = hot_grab_files.shrink_df(hrd_init, leg_start, leg_end, storm_name_2, af)
-hdobs_sm = hot_grab_files.shrink_df(hdobs_init, leg_start, leg_end, storm_name_2, af)
+hrd_sm = hot_grab_files.shrink_df(hrd_init, leg_start, leg_end, storm_name, af)
+hdobs_sm = hot_grab_files.shrink_df(hdobs_init, leg_start, leg_end, storm_name, af)
 hot_grab_files.copy_files(hrd_sm,sam_ingest_dir)
 hot_grab_files.copy_files(hdobs_sm,sam_ingest_dir)
 os.system('for i in '+sam_ingest_dir+'/*.gz; do gunzip $i; done')
@@ -118,7 +122,7 @@ if len(hdobs_sm.mission.unique()) > 1:
 os.system('for i in '+sam_ingest_dir+'/*.txt; do mv "$i" "${i%.txt}.hdob"; done')
 
 # read HDOBS
-hdobs, mission = hot_calc_centers.read_hdobs('KWBC', storm_name_2,'SAMURAI', leg_start, leg_end)
+hdobs, mission = hot_calc_centers.read_hdobs('KWBC', storm_name,'SAMURAI', leg_start, leg_end)
 
 print('avg, min, max altitude (km): '+str(np.round(hdobs.hgt.mean())/1000.)+', '+str(np.round(hdobs.hgt.min())/1000.)+', '+str(np.round(hdobs.hgt.max())/1000.))
 
@@ -183,8 +187,8 @@ os.system('sh run_julia.sh')
 
 # read simplex output, avg layer around flight altitude, interpolate to lat/lon,
 # check for distance from W-C center, assuming it's good, to see if simplex center good
-sam_lon, sam_lat, xc, yc, wccen, rmw_avg = hot_calc_centers.process_simplex_cen('samurai_center.nc', alt_plane, cart_file, 
-                                                                                [lat_wc, lon_wc], wc_good)
+sam_lon, sam_lat, xc, yc, wccen, rmw_avg, vdm_good = hot_calc_centers.process_simplex_cen('samurai_center.nc', alt_plane, cart_file, 
+                                                                                          [lat_wc, lon_wc], wc_good, args, storm_intens_2)
 
 # convert hdobs to xy
 x_plane,y_plane = xy(hdobs.lat.values,hdobs.lon.values,sam_lat,sam_lon)
@@ -277,7 +281,7 @@ sfc_wind_pred_ac, swann_rmw_ac, sfc_wind_pred_ms_ac = hot_prep_data.postprocess_
 sam_fl_vmax, hdobs_fl_vmax, swann_sam_vmax, swann_hdobs_vmax, simp_frank = hot_prep_data.vmax_calcs_sam(alt_plane, wspd_earth, hdobs, sfc_wind_pred, sfc_wind_pred_ac)
 
 # create text strings for image
-figtitle, textstr = hot_prep_data.create_fig_str(storm_name_2, mission, leg_start, leg_end, sam_lat, sam_lon, swann_rmw, simp_frank, 'N')
+figtitle, textstr = hot_prep_data.create_fig_str(storm_name, mission, leg_start, leg_end, sam_lat, sam_lon, swann_rmw, simp_frank, 'N')
 
 #%% #### main code: step 5 - generate any images ####
 
