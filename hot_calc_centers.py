@@ -710,6 +710,8 @@ def process_simplex_cen(fn, alt_plane, cart_file, wc_cen, wc_good, args, intens)
     elif (args.VDMLON != 0.0) & (args.VDMLAT != 0.0) & ~wc_good & (intens < 30):
         sam_lon = args.VDMLON
         sam_lat = args.VDMLAT
+        xc = np.interp(args.VDMLON, ncfile_cen['longitude'][:].data, ncfile_cen['x'][:].data)
+        yc = np.interp(args.VDMLAT, ncfile_cen['latitude'][:].data, ncfile_cen['y'][:].data)
         print('Using HRD summary center, A deck intensity < 30 m/s')
         wccen = False # maybe add similar param for VDM? would assume vdm is good though....
         vdm_good = True # might include a check for these cases...
