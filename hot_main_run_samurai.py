@@ -187,8 +187,8 @@ os.system('sh run_julia.sh')
 
 # read simplex output, avg layer around flight altitude, interpolate to lat/lon,
 # check for distance from W-C center, assuming it's good, to see if simplex center good
-sam_lon, sam_lat, xc, yc, wccen, rmw_avg = hot_calc_centers.process_simplex_cen('samurai_center.nc', alt_plane, cart_file, 
-                                                                                [lat_wc, lon_wc], wc_good)
+sam_lon, sam_lat, xc, yc, wccen, rmw_avg, vdm_good = hot_calc_centers.process_simplex_cen('samurai_center.nc', alt_plane, cart_file, 
+                                                                                          [lat_wc, lon_wc], wc_good, args, storm_intens_2)
 
 # convert hdobs to xy
 x_plane,y_plane = xy(hdobs.lat.values,hdobs.lon.values,sam_lat,sam_lon)

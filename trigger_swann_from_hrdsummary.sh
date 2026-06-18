@@ -19,8 +19,8 @@ lon=${output_lines[-1]} # not using right now, might add later ******
 
 # also add in center location? ******
 if [[ "$filesexist" == 'N' && "$tc" == 'TC' && "$dataexist" == 'True' ]]; then 
-    echo "python hot_main_run_samurai.py $stormid $stormname $legstart $legend > ./output_files/sam_$stormid_$legstart.log"
-    python hot_main_run_samurai.py $stormid $stormname $legstart $legend > ./output_files/sam_$stormid_$legstart.log
+    echo "python hot_main_run_samurai.py $stormid $stormname $legstart $legend --VDMLAT $lat --VDMLON $lon > ./output_files/sam_$stormid_$legstart.log"
+    python hot_main_run_samurai.py $stormid $stormname $legstart $legend --VDMLAT $lat --VDMLON $lon > ./output_files/sam_$stormid_$legstart.log
 elif [[ "$filesexist" == 'N' && "$tc" == 'TC' && "$dataexist" == 'False' ]]; then 
     echo "Not enough input files exist, waiting for more data: $stormid $stormname $legstart $legend"
 else

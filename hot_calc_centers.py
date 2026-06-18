@@ -664,7 +664,7 @@ def choose_fl_cen(args, prominent, hdobs, wc_cen, adeck_cen):
     return storm_lat, storm_lon, wc_good, vdm_good
 
 
-def process_simplex_cen(fn, alt_plane, cart_file, wc_cen, wc_good):
+def process_simplex_cen(fn, alt_plane, cart_file, wc_cen, wc_good, args, intens):
 
     from netCDF4 import Dataset
     import numpy as np
@@ -700,13 +700,19 @@ def process_simplex_cen(fn, alt_plane, cart_file, wc_cen, wc_good):
     sam_lat_tmp = np.interp(yc_avg, ncfile_cen['y'][:].data, ncfile_cen['latitude'][:].data)
 
     # check for distance from W-C center *** fix later??? *******
-    if ((np.abs(sam_lon_tmp - lon_wc) > 0.4) | (np.abs(sam_lat_tmp - lat_wc) > 0.4)) & wc_good:
+    if ((np.abs(sam_lon_tmp - lon_wc) > 0.4) | (np.abs(sam_lat_tmp - lat_wc) > 0.4)) & wc_good & (intens >= 30):
         print('objective center too far from W-C, W-C good, defaulting to W-C center')
         sam_lon = lon_wc
         sam_lat = lat_wc
         xc = np.interp(lon_wc, ncfile_cen['longitude'][:].data, ncfile_cen['x'][:].data)
         yc = np.interp(lat_wc, ncfile_cen['latitude'][:].data, ncfile_cen['y'][:].data)
         wccen = True # set this to calc rmw later
+    elif (args.VDMLON != 0.0) & (args.VDMLAT != 0.0) & ~wc_good & (intens < 30):
+        sam_lon = args.VDMLON
+        sam_lat = args.VDMLAT
+        print('Using HRD summary center, A deck intensity < 30 m/s')
+        wccen = False # maybe add similar param for VDM? would assume vdm is good though....
+        vdm_good = True # might include a check for these cases...
     else:
         print('objective center seems reasonable or W-C bad')
         sam_lon = sam_lon_tmp
@@ -717,4 +723,4 @@ def process_simplex_cen(fn, alt_plane, cart_file, wc_cen, wc_good):
 
     print('samurai center lat: '+str(sam_lat)+', center lon: '+str(sam_lon))
 
-    return sam_lon, sam_lat, xc, yc, wccen, rmw_avg
+    return sam_lon, sam_lat, xc, yc, wccen, rmw_avg, vdm_good
