@@ -439,6 +439,9 @@ def center_tcvitals(args, cenpath):
         if all(word in line for word in searchwds):
             tc_vital.append(line)
 
+    print(len(tc_vital))
+    print(tc_vital)
+
     if len(tc_vital) == 0:
         print('tcvital file did not include expected time. checking to see if file mistakenly has data from 6 hours prior.')
 
