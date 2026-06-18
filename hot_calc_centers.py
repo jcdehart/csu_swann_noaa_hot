@@ -439,7 +439,7 @@ def center_tcvitals(args, cenpath):
         if all(word in line for word in searchwds):
             tc_vital.append(line)
 
-    if len(tc_vital == 0):
+    if len(tc_vital) == 0:
         print('tcvital file did not include expected time. checking to see if file mistakenly has data from 6 hours prior.')
 
         searchwds = [storm_id, (centime - pd.Timedelta(hours=6)).strftime('%Y%m%d'), (centime - pd.Timedelta(hours=6)).strftime('%H%M')]
