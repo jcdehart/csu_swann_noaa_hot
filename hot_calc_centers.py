@@ -707,6 +707,7 @@ def process_simplex_cen(fn, alt_plane, cart_file, wc_cen, wc_good, args, intens)
         xc = np.interp(lon_wc, ncfile_cen['longitude'][:].data, ncfile_cen['x'][:].data)
         yc = np.interp(lat_wc, ncfile_cen['latitude'][:].data, ncfile_cen['y'][:].data)
         wccen = True # set this to calc rmw later
+        vdm_good = False
     elif (args.VDMLON != 0.0) & (args.VDMLAT != 0.0) & ~wc_good & (intens < 30):
         sam_lon = args.VDMLON
         sam_lat = args.VDMLAT
@@ -722,6 +723,7 @@ def process_simplex_cen(fn, alt_plane, cart_file, wc_cen, wc_good, args, intens)
         xc = xc_avg
         yc = yc_avg
         wccen = False
+        vdm_good = False
 
     print('samurai center lat: '+str(sam_lat)+', center lon: '+str(sam_lon))
 
