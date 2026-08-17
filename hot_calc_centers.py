@@ -397,6 +397,8 @@ def center_tcvitals(args, cenpath):
         basin = 'L'
     elif args.STORM[0:2] == 'EP':
         basin = 'E'
+    elif args.STORM[0:2] == 'CP':
+            basin = 'E'
 
     storm_id = args.STORM[2:4]+basin
     print(storm_id)
