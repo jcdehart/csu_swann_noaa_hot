@@ -12,7 +12,9 @@ import numpy as np
 import pandas as pd
 import argparse
 import os
+import warnings
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['ABSL_MIN_LOG_LEVEL'] = '3'
 from tf_keras.models import model_from_json
 import model_utils
 from geo_conversion import xy
@@ -20,6 +22,9 @@ import hot_grab_files
 import hot_calc_centers
 import hot_prep_data
 import save_files
+
+# filter NaN slices warnings
+warnings.filterwarnings('ignore', message='All-NaN slice encountered', category=RuntimeWarning)
 
 #%% #### main code: step 1 - make center file from tcvitals of flight+ file (hot_calc_centers) ####
 
